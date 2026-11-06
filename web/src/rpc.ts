@@ -32,13 +32,18 @@ async function post(url: string, method: string, params: unknown[]): Promise<unk
   }
 }
 
-/** Try each public RPC in order; move on after any error or a 15 s timeout. */
+/** A revert is the chain's answer, not a broken RPC: asking the next RPC would only repeat it. */
+const isRevert = (e: unknown) =>
+  e instanceof RpcError && (e.code === 3 || !!e.data || /revert/i.test(e.message));
+
+/** Try each public RPC in order; move on after a transport error, an RPC error or a 15 s timeout. */
 export async function rpc<T = unknown>(method: string, params: unknown[]): Promise<T> {
   let last: unknown;
   for (const url of RPCS) {
     try {
       return (await post(url, method, params)) as T;
     } catch (e) {
+      if (isRevert(e)) throw e;
       last = e;
     }
   }
@@ -69,10 +74,10 @@ export async function blockNumber(): Promise<number> {
   return Number(await rpc<string>("eth_blockNumber", []));
 }
 
-type RawLog = { data: string; topics: string[]; blockNumber: string; transactionHash: string };
+export type RawLog = { data: string; topics: string[]; blockNumber: string; transactionHash: string };
 
-/** eth_getLogs over [from, to] in windows of at most 10,000 blocks. */
-export async function getLogs(address: string, topic0: string, from: number, to: number): Promise<RawLog[]> {
+/** eth_getLogs over [from, to] in windows of at most 10,000 blocks. topic0 may list several events (OR). */
+export async function getLogs(address: string, topic0: string | string[], from: number, to: number): Promise<RawLog[]> {
   const out: RawLog[] = [];
   for (let start = from; start <= to; start += LOG_WINDOW) {
     const end = Math.min(to, start + LOG_WINDOW - 1);

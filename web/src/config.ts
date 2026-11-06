@@ -2,29 +2,44 @@ import { Interface } from "ethers";
 
 export const SITE_NAME = "Run Cards";
 export const SITE_DESCRIPTION =
-  "Join Squeektoshi the hamster's runs on Sepolia: lock 30,000 test $CARDIO while he runs, get an on-chain pixel-hamster card and your coins back.";
+  "Hold $MILES, join Squeektoshi the hamster's run on Sepolia, and get an on-chain card drawn from that run's real numbers.";
+export const SITE_ICON = "favicon.svg";
 
 export const CHAIN_ID = 11155111;
 export const CHAIN_HEX = "0xaa36a7";
 export const CHAIN_NAME = "Sepolia";
 
-/** Public Sepolia RPCs, tried in this order; next one on any error or a 15 s timeout. */
+/**
+ * Public Sepolia RPCs for every read, tried in this order; next one on any error or a 15 s timeout.
+ * publicnode and Tenderly answer eth_getLogs over 10,000-block windows; 1rpc only over 50 blocks,
+ * so it is last and serves the plain calls when the first two are down.
+ */
 export const RPCS = [
-  "https://sepolia.gateway.tenderly.co",
   "https://ethereum-sepolia-rpc.publicnode.com",
+  "https://sepolia.gateway.tenderly.co",
   "https://1rpc.io/sepolia",
 ];
 export const RPC_TIMEOUT_MS = 15_000;
 export const LOG_WINDOW = 10_000;
 
-export const RUNCARDS = "0x79224b71fec04bbd1c34d0922e04a11da56d56cf";
-export const RUNCARDS_DEPLOY_BLOCK = 12074980;
-export const CARDIO = "0x1CCcE5C1D320F931B9e409C480F532Ca95C0A26B";
+export const RUNCARDS = "0x4ee0160d3e9d9a24e7ab2d933d3cf29c32774b3c";
+export const RUNCARDS_DEPLOY_BLOCK = 12075794;
+/** $MILES, the 18-decimal coin RunCards locks (its cardio()). */
+export const MILES = "0xA5C662B042136D00E5A142112DF4f47bd9ae1B81";
+/** The $MILES Wheelpad bonding curve. */
+export const CURVE = "0x1Ae975c860D22AEA8d6C6B3398164CfEfd3b7f7E";
+export const CURVE_LAUNCH_BLOCK = 12075784;
+export const RENDERER = "0xa54b14c031e047c32f63b82301d948647422996d";
+export const MILES_SUPPLY = 1_000_000_000;
 export const CORE = "0xfd6c166d4b8e2962e65746a13e5a0797cd4de0c4";
 
 export const STATUS_URL = "https://api.squeekchain.com/v1/status";
 export const POLL_MS = 30_000;
 export const BACKOFF_MS = 5 * 60_000;
+/** A failed Join simulation is retried this often while the tab is visible. */
+export const JOIN_RETRY_MS = 30_000;
+/** The $MILES box refreshes this often while visible. */
+export const MILES_POLL_MS = 90_000;
 
 export const STAKE = 30_000n * 10n ** 18n;
 export const MAX_RUNNERS = 100;
@@ -41,8 +56,8 @@ export const GAS = {
 export const EXPLORER = "https://sepolia.etherscan.io";
 export const LINKS = {
   runCards: `${EXPLORER}/address/${RUNCARDS}`,
-  cardio: `${EXPLORER}/token/${CARDIO}`,
-  wheelpad: `https://wheelpad.fun/coin/${CARDIO}`,
+  miles: `${EXPLORER}/token/${MILES}`,
+  wheelpad: `https://wheelpad.fun/coin/${CURVE}`,
   squeekchain: "https://squeekchain.com",
 };
 
@@ -91,4 +106,17 @@ export const erc20Abi = new Interface([
 
 export const coreAbi = new Interface([
   "function state() view returns (tuple(uint64 settledThroughRound, uint64 cumulativeWork, uint96 cumulativeBlockUnits, uint64 blockHeight, uint96 blockProgress, uint32 workPerThousandBlocks, uint256 authorizationNonce, bool paused))",
+]);
+
+export const curveAbi = new Interface([
+  "function priceX18() view returns (uint256)",
+  "function rReserve() view returns (uint256)",
+  "function rGrad() view returns (uint256)",
+  "function graduated() view returns (bool)",
+  "event Bought(address indexed buyer, uint256 quoteIn, uint256 coinOut, uint256 fee)",
+  "event Sold(address indexed seller, uint256 coinIn, uint256 quoteOut, uint256 fee)",
+]);
+
+export const rendererAbi = new Interface([
+  "function svg(tuple(uint256 runNumber, uint256 work, uint256 activeRounds, uint256 topWork, uint256 blockFrom, uint256 blockTo, uint256 edition, uint256 editions, bytes32 seed) card) view returns (string)",
 ]);

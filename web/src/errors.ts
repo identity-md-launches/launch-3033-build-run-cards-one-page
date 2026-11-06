@@ -2,8 +2,8 @@ import { runCardsAbi } from "./config";
 
 /** Every RunCards error as one plain sentence. */
 export const ERROR_TEXT: Record<string, string> = {
-  NotApproved: "Approve 30,000 $CARDIO for Run Cards first.",
-  NotEnoughCardio: "This wallet needs 30,000 $CARDIO to join.",
+  NotApproved: "Approve 30,000 $MILES for Run Cards first.",
+  NotEnoughCardio: "You need 30,000 $MILES to join.",
   NotRunning: "He is resting: joining opens again when he runs.",
   NoOpenRun: "No run is open: joining opens when his next run starts.",
   AlreadyJoined: "You are already in this run.",

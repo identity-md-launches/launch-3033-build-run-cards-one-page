@@ -1,10 +1,11 @@
-import { BrowserProvider, formatUnits, getAddress, type TransactionRequest } from "ethers";
+import { formatUnits, getAddress } from "ethers";
+import { sendTransaction, waitForTransactionReceipt } from "@wagmi/core";
+import { wagmiConfig } from "./wagmi";
 import {
-  CARDIO, CORE, GAS, RUNCARDS, RUNCARDS_DEPLOY_BLOCK, STAKE, coreAbi, erc20Abi, runCardsAbi,
+  CHAIN_ID, MILES, CORE, GAS, RUNCARDS, RUNCARDS_DEPLOY_BLOCK, STAKE, coreAbi, erc20Abi, runCardsAbi,
 } from "./config";
 import { errorName } from "./errors";
 import { blockNumber, getLogs, read, simulate } from "./rpc";
-import type { Eip1193 } from "./wallet";
 
 export type RunInfo = {
   n: number;
@@ -102,13 +103,13 @@ export type AccountState = {
 
 export async function loadAccount(me: string, chain: ChainState, wheelRunning: boolean): Promise<AccountState> {
   const [bal, alw] = await Promise.all([
-    read(CARDIO, erc20Abi, "balanceOf", [me]),
-    read(CARDIO, erc20Abi, "allowance", [me, RUNCARDS]),
+    read(MILES, erc20Abi, "balanceOf", [me]),
+    read(MILES, erc20Abi, "allowance", [me, RUNCARDS]),
   ]);
   const balance: bigint = bal[0];
   const allowance: bigint = alw[0];
 
-  const approveSim = allowance < STAKE ? await simulate(CARDIO, erc20Abi, "approve", [RUNCARDS, STAKE], me) : null;
+  const approveSim = allowance < STAKE ? await simulate(MILES, erc20Abi, "approve", [RUNCARDS, STAKE], me) : null;
 
   const joinSim = await simulate(RUNCARDS, runCardsAbi, "join", [], me, GAS.join);
   let join: JoinState;
@@ -238,14 +239,19 @@ export async function loadCards(me: string, known: RunInfo[]): Promise<Card[]> {
 
 /* ---------- Sending ---------- */
 
-export async function send(provider: Eip1193, tx: TransactionRequest): Promise<void> {
-  const bp = new BrowserProvider(provider);
-  const signer = await bp.getSigner();
-  const sent = await signer.sendTransaction(tx);
-  const receipt = await sent.wait();
-  if (!receipt || receipt.status !== 1) throw new Error("The transaction reverted on-chain.");
+/** Send through the connected wagmi wallet with a fixed gas limit, then wait for Sepolia to include it. */
+export async function send(tx: { to: string; data: string; gas?: bigint }, onSent?: () => void): Promise<void> {
+  const hash = await sendTransaction(wagmiConfig, {
+    chainId: CHAIN_ID,
+    to: tx.to as `0x${string}`,
+    data: tx.data as `0x${string}`,
+    ...(tx.gas ? { gas: tx.gas } : {}),
+  });
+  onSent?.();
+  const receipt = await waitForTransactionReceipt(wagmiConfig, { hash, chainId: CHAIN_ID });
+  if (receipt.status !== "success") throw new Error("The transaction reverted on-chain.");
 }
 
-export const fmtCardio = (v: bigint) =>
+export const fmtMiles = (v: bigint) =>
   Number(formatUnits(v, 18)).toLocaleString("en-US", { maximumFractionDigits: 2 });
 export const fmtInt = (v: bigint | number) => Number(v).toLocaleString("en-US");
