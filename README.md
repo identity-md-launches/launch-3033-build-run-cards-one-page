@@ -2,11 +2,20 @@
 
 The existing one-page Run Cards interface on Ethereum Sepolia (11155111). Holders lock 30,000 test $MILES while Squeektoshi runs. After delivery, each runner gets their coins back and an on-chain card. Test coins and cards have no value.
 
-This revision is a rebuild only. The previous revision changed `web/src/styles.css` and `web/src/Samples.tsx` but did not rebuild `dist/`, so the live export still loaded `assets/index-D7aOAm6y.js`. `dist/` has now been rebuilt from the unchanged source, and `dist/index.html` loads `assets/index-BMsMAg6p.js`. The three changes now in the export: on phones, Rarity odds stays a table with one row per run; each Sample cards run kind shows its four cards in one row with the odds above each card in that rarity's color; and the run titles show only the name and distance (for example "Slow run under 7.5 km"). No file under `web/` was changed. Contracts, addresses, the wallet stack, reads, flows and every other box are as before. Nothing was deployed on chain.
+This revision is a small design fix, applied verbatim to `web/src/App.tsx` and `web/src/styles.css`, and `dist/` was rebuilt so it goes live. `dist/index.html` now loads `assets/index-CuAy6CPQ.js`. The changes:
+- The top bar and footer align with the box content.
+- Body text is 14px.
+- On phones the tagline is 24px and the brand line breaks only after "WHEEL MILES ·".
+- The Squeekchain block is now a third stat in The wheel, labelled Chain block.
+- Sample cards titles are centered over their cards.
+- Rarity odds has even columns, with percentages centered under their headings on phones.
+- How it works is muted, Questions is compact and evenly spaced, and the footer uses small print on phones.
+
+Contracts, addresses, the wallet stack, reads and flows are as before. Nothing was deployed on chain.
 
 ## Install, preview and rebuild
 
-The active application is in `web/`; use its existing manifest and lockfile. Rebuilt with Node.js 24.21.0 and npm 11.19.0.
+The active application is in `web/`; use its existing manifest and lockfile. Rebuilt with Node.js 24.22.1 and npm 11.19.1.
 
 ```sh
 npm --prefix web ci
@@ -16,7 +25,7 @@ npm --prefix web run build
 npm --prefix web run preview
 ```
 
-`build` runs TypeScript (`tsc --noEmit`) and Vite, writing the production site to the repository-root `dist/`. `preview` serves that export. Vite's existing `base: "./"` makes asset references relative for static hosting, including gateway subpaths. Deliver `dist/index.html` and all of `dist/assets/`, `dist/favicon.svg` and `dist/og.png` together. The app uses one page, so it needs no server-side routing or backend.
+`build` runs TypeScript (`tsc --noEmit`) and Vite, writing the production site to the repository-root `dist/`. `preview` serves that export. Rebuilding the same source can change the JavaScript hashes, so check `dist/index.html` for the current file name after any rebuild. Vite's existing `base: "./"` makes asset references relative for static hosting, including gateway subpaths. Deliver `dist/index.html` and all of `dist/assets/`, `dist/favicon.svg` and `dist/og.png` together. The app uses one page, so it needs no server-side routing or backend.
 
 The logo, favicon and share image are unchanged. Samples require a reachable Sepolia RPC to draw; the static export retains the existing loading and Draw again states when a read fails.
 
@@ -45,7 +54,7 @@ Every transaction action retains its free wallet `eth_call` checks. Healthy acco
 | `web/index.html` | Title, description, favicon and Open Graph metadata |
 | `web/public/` | Local favicon and share image |
 | `web/src/App.tsx` | Page, five Questions disclosures and transaction controls |
-| `web/src/styles.css` | Existing visual tokens and scoped sample-card responsive grids |
+| `web/src/styles.css` | Visual tokens, type scale and responsive layout |
 | `web/src/config.ts`, `rpc.ts`, `chain.ts`, `poll.ts` | Existing chain configuration, reads, simulations, transactions and polling |
 | `web/src/wagmi.ts`, `useWallet.ts`, `ConnectSheet.tsx`, `open-in.ts` | Existing wallet connections and sheet |
 | `web/src/Miles.tsx`, `miles.ts`, `Samples.tsx`, `samples.ts` | Existing price/curve panel and sample cards |
@@ -55,23 +64,27 @@ Every transaction action retains its free wallet `eth_call` checks. Healthy acco
 
 ## Validation
 
-`npm --prefix web ci` installed dependencies from the unchanged `web/package-lock.json` into the ignored `web/node_modules/`. `npm --prefix web run typecheck` and `npm --prefix web run build` both exited 0 (Vite 5.4.11, 4,908 modules). Vite emptied `dist/` and wrote the new export, so the seven old hashed files (`index-D7aOAm6y.js`, `index-CEn7KBlC.js`, `index-xaYGtov2.js`, `index-oe9QRP0h.css`, `ccip-B1k1dpxZ.js`, `localBatchGatewayRequest-CJS1sTnw.js`, `secp256k1-CMqpQZy4.js`) are gone and only files the new `index.html` uses remain. `git status` showed no change under `web/`.
+`npm --prefix web ci`, `npm --prefix web run typecheck` and `npm --prefix web run build` all exited 0 (Vite 5.4.11, 4,908 modules). Vite emptied `dist/` and wrote the new export, so the seven old hashed files are gone and every file left in `dist/assets/` is used. Only `web/src/App.tsx` and `web/src/styles.css` changed under `web/`.
 
-I checked the rebuilt export in Playwright Chromium, served from a `/preview/` subpath, with live Sepolia and Squeekchain reads. **25 of 27 checks passed.** At 375px:
-- Rarity odds is a table with one row per run; the run labels take two lines; the percentages are in their rarity colors.
-- Past runs shows one labelled block per run.
-- All four sample groups have four cards in one row, with the odds above and the rarity below each card in matching colors.
-- The titles read "Slow run under 7.5 km" and so on.
-- All 16 renderer images drew, and there was no sideways scroll.
+I checked the rebuilt export in Playwright Chromium, served from a `/preview/` subpath, with live Sepolia and Squeekchain reads. **89 of 90 checks passed** in one run on this exact export.
 
-At 1280px the same checks passed in desktop layout. At 390px the product and Connect are on the first screen, and the Connect sheet and the five Questions work from the keyboard.
+At 375px:
+- Logo, Connect, box content and footer text share the same edges (33px and 342px).
+- The wheel shows Speed, Settled round and Chain block in one row.
+- Sample cards titles are centered over their cards, and all 16 cards drew.
+- Rarity odds has one row per run, with each percentage centered under its heading.
+- There is no sideways scroll.
 
-The two failed checks are the same thing, once at each width: an aborted fetch of the page's own URL by the Coinbase Wallet SDK's `checkCrossOriginOpenerPolicy`. The previous export does exactly the same, and it has no visible effect.
+At 1280px the three top boxes are equal (381×215px) and the four odds columns are equal (147.4px).
 
-The pinned taste probe passed **10 of 16 categories**. Four flags are existing look choices that earlier briefs kept on purpose. Two are new, and both come from the previous revision's source, which this brief says not to change:
-- 7 type sizes at 390px, from the phone odds table's 9px and 13px text.
-- A 4px clip of the "Drawing…" placeholder in the narrower phone cards at 320px. It only shows when the probe runs offline.
+At 390px the product and Connect are on the first screen, and the Connect sheet and the five Questions work from the keyboard.
+
+**The one failed check is a small defect, left as is.** In the wrong-network state at 320 to 323px wide, the "Switch to Sepolia" button overlaps the end of the no-wrap brand line by up to 2.8px. It comes from the requested `.nowrap` edit, and the brief allowed no other change under `web/`. It does not happen from 324px up, or with Connect or a connected address at any checked width.
+
+The Speed value wraps onto two lines at 320 and 960px, and at 360 and 1024px once the speed has two digits. The stats stay in one row.
+
+The pinned taste probe passed **11 of 16 categories**, up from 10, because the type scale now passes with six sizes at 390px. Four flags are existing look choices that earlier briefs kept on purpose (contrast, casing, tracking, type-faces). The fifth is the existing 4px clip of the "Drawing…" placeholder at 320px, which shows only while art is loading or unreachable.
 
 The commands, six-domain review and limitations are in [VALIDATION.md](VALIDATION.md).
 
-No real wallet signing, mining, WebKit, screen reader, physical device or native browser zoom was tested.
+No real wallet signing, mining, WebKit, screen reader, physical device or native browser zoom was tested. The wallet states were reached with a test provider in the page that signs nothing.

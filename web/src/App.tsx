@@ -243,7 +243,7 @@ export function App() {
         <header className="box top">
           <div className="brand">
             <Logo size={30} />
-            <span className="brand-line">WHEEL MILES · RUN CARDS · SEPOLIA</span>
+            <span className="brand-line">WHEEL MILES · <span className="nowrap">RUN CARDS · SEPOLIA</span></span>
           </div>
           <ConnectSheet w={w} />
         </header>
@@ -251,7 +251,7 @@ export function App() {
         <main id="main" className="page">
           <section className="box hero" aria-label="Run Cards">
             <DotTitle />
-            <p className="tagline">Hold $MILES. Join the run.<br /><span className="blue">Get a card when it ends.</span></p>
+            <p className="tagline">Hold $MILES. Join the run. <span className="blue">Get a card when it ends.</span></p>
             <p className="lede">Whenever Squeektoshi is on the wheel, holders of 30,000 $MILES can join while he runs. When he has rested for 4 hours, the run ends and each runner gets their own on-chain card, drawn from that run’s real numbers.</p>
           </section>
 
@@ -263,11 +263,11 @@ export function App() {
                   {live ? `${liveErr || live.stale ? "Last known: " : ""}${live.running ? (liveErr || live.stale ? "running" : "Running now") : "Resting"}` : liveErr ? "Wheel status unavailable" : "Checking the wheel…"}
                 </p>
               </div>
-              <dl className="stats stats-2">
+              <dl className="stats stats-3">
                 <Stat label="Speed" value={live ? `${live.kmh.toFixed(1)} km/h` : "…"} />
                 <Stat label="Settled round" value={chain ? fmtInt(chain.settledRound) : "…"} />
+                <Stat label="Chain block" value={chain ? fmtInt(chain.blockHeight) : "…"} />
               </dl>
-              <p className="small muted">{chain ? <>Squeekchain block {fmtInt(chain.blockHeight)}</> : chainErr ? "Settled round unavailable." : "Reading Sepolia…"}</p>
               <p className="small note" role="status" hidden={!liveErr}>{liveErr ? `${live ? "Wheel status unavailable. " : ""}Retrying in 5 minutes.` : ""}</p>
               <p className="small note" role="status" hidden={!chainErr}>{chainErr ? `Sepolia unavailable.${chain ? " Showing the last reading." : ""} Retrying in 5 minutes.` : ""}</p>
             </Box>
