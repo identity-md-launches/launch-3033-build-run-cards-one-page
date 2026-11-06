@@ -2,11 +2,11 @@
 
 The existing one-page Run Cards interface on Ethereum Sepolia (11155111). Holders lock 30,000 test $MILES while Squeektoshi runs. After delivery, each runner gets their coins back and an on-chain card. Test coins and cards have no value.
 
-This revision changes only the Sample cards box: compact cards capped at 140px from 640px, two run groups per row from 960px, one heading combining the run name, distance and existing rarity odds, and centered rarity-only captions. Phones below 640px retain two cards filling each row. The same sixteen inputs are drawn live by the existing renderer, lazy-loaded and cached. All other boxes, copy, visual tokens, contracts, wallet connections, reads and transaction flows are preserved. Nothing was deployed on chain.
+This revision is a rebuild only. The previous revision changed `web/src/styles.css` and `web/src/Samples.tsx` but did not rebuild `dist/`, so the live export still loaded `assets/index-D7aOAm6y.js`. `dist/` has now been rebuilt from the unchanged source, and `dist/index.html` loads `assets/index-BMsMAg6p.js`. The three changes now in the export: on phones, Rarity odds stays a table with one row per run; each Sample cards run kind shows its four cards in one row with the odds above each card in that rarity's color; and the run titles show only the name and distance (for example "Slow run under 7.5 km"). No file under `web/` was changed. Contracts, addresses, the wallet stack, reads, flows and every other box are as before. Nothing was deployed on chain.
 
 ## Install, preview and rebuild
 
-The active application is in `web/`; use its existing manifest and lockfile. Checked with Node.js 24.21.0 and npm 12.2.0.
+The active application is in `web/`; use its existing manifest and lockfile. Rebuilt with Node.js 24.21.0 and npm 11.19.0.
 
 ```sh
 npm --prefix web ci
@@ -55,8 +55,23 @@ Every transaction action retains its free wallet `eth_call` checks. Healthy acco
 
 ## Validation
 
-Dependencies were installed using the unchanged `web/package-lock.json` in a disposable copy under `test/scratch/build/`. This respected the protected repository dependency paths. Its source and configuration matched `web/`; the final export was copied to `dist/`, and obsolete hashed assets were removed. Scratch dependencies, browser binaries and caches are excluded from delivery by the existing ignore rules. No manifest, lockfile, build configuration, dependency or ignore-file change is included.
+`npm --prefix web ci` installed dependencies from the unchanged `web/package-lock.json` into the ignored `web/node_modules/`. `npm --prefix web run typecheck` and `npm --prefix web run build` both exited 0 (Vite 5.4.11, 4,908 modules). Vite emptied `dist/` and wrote the new export, so the seven old hashed files (`index-D7aOAm6y.js`, `index-CEn7KBlC.js`, `index-xaYGtov2.js`, `index-oe9QRP0h.css`, `ccip-B1k1dpxZ.js`, `localBatchGatewayRequest-CJS1sTnw.js`, `secp256k1-CMqpQZy4.js`) are gone and only files the new `index.html` uses remain. `git status` showed no change under `web/`.
 
-The explicit typecheck and production build passed. Direct Chromium validation passed **13/13 checks** against the export under `/preview/`, covering fourteen viewport widths, exact sample inputs, live renderer SVGs, lazy loading, caching, retries, keyboard interactions and representative wallet transaction boundaries. At 1280px, the sample box shrank from about 2,003px to 568px. The pinned taste@1 probe completed on the input and final exports: **12/16 categories passed**, with the same four existing appearance/contrast flags. Actual commands, six-domain coverage and limitations are recorded in [VALIDATION.md](VALIDATION.md). Scratch verification scripts and screenshots are disposable and are not part of the submitted site.
+I checked the rebuilt export in Playwright Chromium, served from a `/preview/` subpath, with live Sepolia and Squeekchain reads. **25 of 27 checks passed.** At 375px:
+- Rarity odds is a table with one row per run; the run labels take two lines; the percentages are in their rarity colors.
+- Past runs shows one labelled block per run.
+- All four sample groups have four cards in one row, with the odds above and the rarity below each card in matching colors.
+- The titles read "Slow run under 7.5 km" and so on.
+- All 16 renderer images drew, and there was no sideways scroll.
 
-Wallet tests use local fixtures and reject transaction requests at the wallet boundary. They do not establish successful real-wallet signing or mining. Sixteen read-only calls to the existing renderer succeeded; broader live service behavior was not audited. The provided browser connector failed with “Socket path too long”; direct Playwright Chromium supplied rendered evidence. WebKit could not launch because required system libraries were missing. Screen-reader, physical-device and native browser-zoom checks were not performed. Existing appearance-related probe flags are documented, including dim-label contrast; this bounded change preserves the requested look.
+At 1280px the same checks passed in desktop layout. At 390px the product and Connect are on the first screen, and the Connect sheet and the five Questions work from the keyboard.
+
+The two failed checks are the same thing, once at each width: an aborted fetch of the page's own URL by the Coinbase Wallet SDK's `checkCrossOriginOpenerPolicy`. The previous export does exactly the same, and it has no visible effect.
+
+The pinned taste probe passed **10 of 16 categories**. Four flags are existing look choices that earlier briefs kept on purpose. Two are new, and both come from the previous revision's source, which this brief says not to change:
+- 7 type sizes at 390px, from the phone odds table's 9px and 13px text.
+- A 4px clip of the "Drawing…" placeholder in the narrower phone cards at 320px. It only shows when the probe runs offline.
+
+The commands, six-domain review and limitations are in [VALIDATION.md](VALIDATION.md).
+
+No real wallet signing, mining, WebKit, screen reader, physical device or native browser zoom was tested.
