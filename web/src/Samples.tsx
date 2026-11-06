@@ -31,7 +31,7 @@ function SampleCard({ row, rarity, edition }: { row: SampleRow; rarity: string; 
           : failed ? <button className="btn btn-small" onClick={() => setAttempt((a) => a + 1)}>Draw again</button>
           : <span className="muted small">Drawing…</span>}
       </div>
-      <p className={`small rarity r-${rarity.toLowerCase()}`}>{rarity} <span className="muted">· #{edition}</span></p>
+      <p className={`small rarity r-${rarity.toLowerCase()}`}>{rarity}</p>
     </li>
   );
 }
@@ -39,10 +39,9 @@ function SampleCard({ row, rarity, edition }: { row: SampleRow; rarity: string; 
 export function SampleRows() {
   return (
     <div className="sample-rows">
-      {SAMPLE_ROWS.map((row) => (
+      {SAMPLE_ROWS.map((row, i) => (
         <div key={row.k} className="sample-row">
-          <h3 className="row-title">{row.label}</h3>
-          <p className="small muted">Work {row.work.toLocaleString("en-US")} · {row.rounds} rounds · top {row.top} · blocks {row.blockFrom.toLocaleString("en-US")} to {row.blockTo.toLocaleString("en-US")}</p>
+          <h3 className="row-title"><strong>{row.label.split(", ")[0]}</strong> {row.label.split(", ")[1]} · {ODDS[i].odds.join(" / ")} %</h3>
           <ul className="card-grid">
             {RARITIES.map((r, i) => <SampleCard key={r} row={row} rarity={r} edition={row.editions[i]} />)}
           </ul>

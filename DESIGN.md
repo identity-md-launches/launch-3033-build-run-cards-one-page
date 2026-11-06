@@ -2,7 +2,7 @@
 
 ## Overview
 
-Run Cards is a one-page Sepolia game interface for people joining Squeektoshi's runs with 30,000 test $MILES. The existing design uses a near-black page, outlined boxes, monospace copy, orange actions, blue accents and a dot-matrix title. This revision preserves that system. It removes two FAQ entries and makes the wheel/run/wallet reading order consistent on phones and desktop.
+Run Cards is a one-page Sepolia game interface for people joining Squeektoshi's runs with 30,000 test $MILES. The existing design uses a near-black page, outlined boxes, monospace copy, orange actions, blue accents and a dot-matrix title. This revision preserves that system and changes only the Sample cards box to a compact comparison of the same sixteen live-drawn examples.
 
 The source of truth is `web/src/styles.css`, with page composition in `web/src/App.tsx` and shared `Box` and `Stat` components in `web/src/ui.tsx`. The committed static export lives in `dist/`.
 
@@ -45,6 +45,8 @@ No downloadable font is required. `--font-mono` is `ui-monospace, SFMono-Regular
 
 Weights are 400 and 700. Body line-height is 1.55; headings and controls use 1.2, the tagline 1.1, stats 1.25 and odds 1.3. Box headings are uppercase with 2.2px tracking; the top brand line uses 2px, reduced to 1px below 560px. Stat labels, table headings and buttons retain their existing uppercase treatment. Paragraphs use `text-wrap: pretty`; the tagline uses `balance`. The lede has an 80ch measure. Changing numbers use tabular figures; stat values allow wrapping anywhere.
 
+Sample group headings use the existing 14px small-text token, weight 400 and line-height 1.55; only the run name is bold (700). Each heading combines name, distance and odds in one `h3`, replacing the separate work/round/block paragraph. It stays on one rendered line from 640px in the checked browser, and wraps naturally on narrow phones without clipping. Captions use 14px bold, centered text: Common in the normal text color, Rare blue, Epic purple and Legendary orange. Edition numbers remain in the artwork and image alt text.
+
 `DotTitle` in `web/src/DotTitle.tsx` renders the accessible h1 as fixed SVG dots. The existing orange/blue wordmark, pixel hamster, circular logo, favicon and local share-image assets are retained.
 
 ## Layout
@@ -57,13 +59,14 @@ The page retains this sequence: header, hero, wheel/run/wallet row, $MILES, tran
 | --- | --- |
 | Below 960px | All `.row` layouts have one column. The three boxes follow DOM order: **The wheel → The run → Your wallet**. No `order` override is applied. |
 | 960px and wider | `.row-3` has three equal columns, wheel/run/wallet left to right. `.row-2-1` uses a 2:1 split. |
-| Below 640px | Sample rows have two columns; the connect dialog becomes a bottom sheet with safe-area padding. |
-| 640px and wider | Sample rows have four columns; `.stats-4` has four columns. |
+| Below 640px | Each sample group has two equal card columns filling its width; the connect dialog becomes a bottom sheet with safe-area padding. |
+| 640px and wider | Each sample group has one left-aligned row of four cards, 12px apart. Tracks use `repeat(4, minmax(0, 140px))`, shrinking when needed and never exceeding 140px. `.stats-4` retains four columns. |
+| 960px and wider, Sample cards | `.sample-rows` uses two equal columns with a 20px gap: Slow / Normal, then Good / Great. Below 960px the groups stack in that same DOM order. |
 | Below 560px | Smaller tagline and brand line; disconnect text is hidden visually; tables become labelled two-column row blocks. |
 
-Stats use two columns by default. My cards use an auto-fill grid with a 150px minimum tile width. Card artwork has a 400:560 aspect ratio. The $MILES chart is 170px tall. Tables retain their data in mobile blocks and have an overflow wrapper. `min-width: 0`, wrapping and responsive grids prevent page overflow without clipping the page.
+Stats use two columns by default. My cards retain the auto-fill grid with a 150px minimum tile width. Card artwork keeps its 400:560 aspect ratio, width 100%, `object-fit: contain` and `image-rendering: pixelated`; images are not cropped to a different shape. The $MILES chart is 170px tall. Tables retain their data in mobile blocks and have an overflow wrapper. `min-width: 0`, wrapping and responsive grids prevent page overflow without clipping the page.
 
-Chromium verification covered 320, 375, 390, 559, 639, 640, 768, 959, 960 and 1440px. At 390×844 the product name and enabled Connect control are on the first screen. Detailed state-dependent action positions and limitations are in the validation record.
+Chromium verification covered 320, 375, 390, 559, 639, 640, 768, 959, 960, 1024, 1280, 1440, 1920 and 2560px, with no page overflow. At 1280px, samples measure about 130×182px and the box about 568px tall (previously about 2,003px). Above the existing 1200px page maximum, cards stay that size. At 390×844 the product name and enabled Connect control are on the first screen. Detailed measurements and limitations are in the validation record.
 
 ## Elevation & Depth
 
@@ -80,7 +83,7 @@ The design is flat: box/raised tones and 1px borders provide structure. The live
 - **Wallet sheet** (`web/src/ConnectSheet.tsx`): one Connect control, native modal dialog, named EIP-6963 providers, Coinbase Wallet, and four phone Open in links plus Coinbase Smart Wallet. Rows are at least 48px; close is 32px. Escape/backdrop/close dismiss; the native dialog restores focus. Pending and cancellation states remain inline. Existing wrong-network and disconnect controls remain.
 - **Wheel and run** (`web/src/App.tsx`): live/last-known/loading/error states, stats, Join and conditional Leave actions. The run-1 notice remains until a later run starts. Free wallet simulations determine actions; visible-tab Join checks remain every 30 seconds.
 - **$MILES** (`web/src/Miles.tsx`): curve stats, price/trade chart, graduation indicator, Wheelpad link and existing unavailable/last-reading states.
-- **Cards** (`web/src/App.tsx`, `web/src/Samples.tsx`): owned-card metadata and on-chain SVGs; sixteen explicitly labelled samples with lazy drawing and Draw again recovery. Rarity colors reuse existing tokens.
+- **Cards** (`web/src/App.tsx`, `web/src/Samples.tsx`, `web/src/samples.ts`): owned-card metadata and on-chain SVGs. `SampleRows` presents four run groups with four rarity samples each; headings reuse the unchanged `ODDS` table values. The sample data, seed formula and promise cache are unchanged. Drawing starts within 400px of the viewport through `IntersectionObserver`; images retain lazy loading, asynchronous decoding and descriptive alt text. A failed read exposes the existing Draw again button and evicts its failed cache entry. Rarity captions reuse existing color tokens. These sample rules do not change the owned-card grid.
 - **Deliver/reveal and status** (`web/src/App.tsx`): simulation-gated actions, existing busy labels and a persistent polite status region. Existing empty/read-error guidance remains.
 - **Questions** (`web/src/App.tsx`): five native `details`/`summary` disclosures in the requested order. Removed entries leave no placeholder gap. Each summary is at least 32px high.
 - **Footer** (`web/src/App.tsx`): four unchanged external links and the exact Sepolia/no-value disclaimer.

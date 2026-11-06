@@ -1,82 +1,88 @@
-# Run Cards: bounded revision validation
+# Validation: compact Sample cards
 
-## Scope and completion
+Complete for the stated scope. This is a worker's local verification record, not independent certification.
 
-**Complete for the stated scope.** Removed the two specified FAQ entries and their answers; the five remaining question/answer pairs are byte-for-byte unchanged and in the requested order. Removed the mobile `order: -1` rule for The run. The existing DOM now supplies The wheel → The run → Your wallet at every width. No other section was reordered.
+The only application source changes are `web/src/Samples.tsx` and the sample-specific rules in `web/src/styles.css`. The existing application, contracts, addresses, ABIs, wallet stack, RPCs, simulations, polling, sample inputs and seed/cache implementation are preserved. The export is `dist/`. No contract was written, deployed or called with a state-changing request.
 
-The source and export are delivered together. No contract was written or deployed. Addresses, ABIs, RPCs, wallet connectors, transaction code, reads, simulations and polling source are unchanged. All product copy outside the two deleted FAQs, the footer destinations and disclaimer, logo, favicon and existing visual tokens are preserved. One input inconsistency was resolved: `web/public/og.png` had a different image from the previous `dist/og.png`. The source now uses the previous export's image, so the final exported share image is unchanged.
+The visual idea remains the existing dark monospace game dashboard, with orange actions, blue accents and pixel card art. Only the sample comparison is denser. A single title element wraps naturally on phones; it is not clipped or forced onto an overflowing line. At desktop widths, cards may shrink below the 140px cap to fit four cards in each of the two run-group columns within the unchanged page container.
 
-The review followed the pinned Better Interface workflow and all six domains, with the brief's exact-preservation requirement taking precedence over general style preferences. The visual idea remains a dark monospace game dashboard with a dot-matrix title and orange/blue accents. This report records worker checks, not independent certification.
+## Commands and results
 
-## Commands and actual results
-
-Checked with Node 24.21.0 and npm 11.19.0. To respect protected dependency paths, copied `web/` source, public assets, configuration, manifest and lockfile to `test/scratch/build/` and installed there. Byte comparisons confirmed that this build copy matched the final application. No dependency, manifest, lockfile, build configuration or ignore file was changed in the submission.
+Checked with Node 24.21.0, npm 12.2.0, Playwright 1.56.1 and Chromium 141.0.7390.37. To honor protected dependency paths, copied the unchanged `web/` manifest, lockfile and configuration with the application into `test/scratch/build/`, installed there, and copied the finished `test/scratch/dist/` export to root `dist/`. Byte comparisons confirmed build inputs match final `web/` and all exported files match the build output. No dependency, manifest, lockfile, build configuration or ignore-file changes are included.
 
 | Check | Actual command / method | Result |
 | --- | --- | --- |
-| Install | `npm ci --prefix test/scratch/build --cache test/scratch/npm-cache --no-audit --no-fund` | Exit 0; installed the existing lockfile. Deprecation notices from existing dependencies. |
-| Explicit typecheck | `npm --prefix test/scratch/build run typecheck` | Exit 0, `tsc --noEmit`. |
-| Final production build | `npm --prefix test/scratch/build run build` | Exit 0; TypeScript and Vite 5.4.11. Final Vite build completed in 21.79s. Existing dependency pure-annotation warnings were nonfatal. |
-| Export | Copied `test/scratch/dist/` to `dist/`, removed obsolete hashed files; compared every output file | Pass; source/build/export agree. 1,474,110 file bytes in the final export. |
-| Interaction validation | `PLAYWRIGHT_BROWSERS_PATH=test/scratch/browsers node test/scratch/validate.mjs` | Exit 0, **15/15 checks passed** on the final export, served under `/preview/`. |
-| Design probe, final | `PLAYWRIGHT_BROWSERS_PATH=test/scratch/browsers IMD_PLAYWRIGHT="$PWD/test/scratch/tools/node_modules/playwright/index.mjs" node .imd/reads/skills/design-critic/scripts/taste.mjs --out test/scratch/taste --offline` | Exit 0; **12/16 checks passed**. Four reported flags described below. Exit 0 means the probe completed, not that every check passed. |
-| Design probe, baseline | Same probe against `test/scratch/baseline/dist`, output `test/scratch/taste-baseline`, offline | Exit 0; **12/16 checks passed**, the same four categories as final. |
-| Integrity | File comparisons, relative-URL/file existence checks, protected-path diff and submission-size checks | Pass; complete local assets, no obsolete export chunks or packaged dependency caches. |
+| Install | `npm ci --prefix test/scratch/build --cache test/scratch/npm-cache --no-audit --no-fund` | Exit 0, using the existing lockfile. |
+| Typecheck | `npm --prefix test/scratch/build run typecheck` | Exit 0; `tsc --noEmit`. |
+| Production build | `npm --prefix test/scratch/build run build` | Exit 0; TypeScript and Vite 5.4.11; 4,908 modules, Vite completed in 11.22s. Existing dependency annotation warnings were nonfatal. |
+| Existing renderer | `node test/scratch/prepare.mjs` | Exit 0; sixteen read-only `eth_call` responses from `RunCardRenderer.svg(card)` at the unchanged renderer address, via `https://ethereum-sepolia-rpc.publicnode.com`. All decoded as SVG. |
+| Browser availability | `PLAYWRIGHT_BROWSERS_PATH=test/scratch/browsers node test/scratch/browser-launch.mjs` | Chromium launched. WebKit launch failed because required host libraries are missing. |
+| Interactions | `PLAYWRIGHT_BROWSERS_PATH=test/scratch/browsers node test/scratch/validate.mjs` | Exit 0; **13/13 checks passed**, served from a bounded foreground server under `/preview/`. |
+| Pinned design probe | `PLAYWRIGHT_BROWSERS_PATH=test/scratch/browsers IMD_PLAYWRIGHT="$PWD/test/scratch/tools/node_modules/playwright/index.mjs" node .imd/reads/skills/design-critic/scripts/taste.mjs --out test/scratch/taste --offline` | Exit 0; **12/16 categories passed**. Four existing flags, below. Probe completion does not mean every category passed. |
+| Baseline probe | Same probe with target `test/scratch/baseline/dist` and output `test/scratch/taste-baseline`, offline | Exit 0; the same twelve passing and four flagged categories. |
+| Integrity | Baseline file hashes, source/build/export byte comparisons, relative asset checks and file-size audit | Application changes confined to the two stated source files; public images unchanged; old hashed output removed; complete static export and existing lockfiles retained. Export: **1,474,128 file bytes**. |
 
-The final build log is `test/scratch/final-build.log`; interaction log and structured results are `test/scratch/final-interactions.log` and `test/scratch/validation-results.json`; probe outputs are `test/scratch/taste-output.json` and `test/scratch/taste-baseline-output.json`. These are disposable worker evidence and are removed with scratch before submission. `README.md` contains the normal rebuild/preview commands; `DESIGN.md` documents the final source.
+Scratch scripts, raw logs, fixture responses, dependency installations and screenshots are disposable test scaffolding, excluded from the delivered product. They are removed before submission. Build logs are `test/scratch/typecheck.log` and `build.log`; browser results are `test/scratch/interactions.log` and `validation-results.json`; probe results are `test/scratch/taste-output.json`, `taste-baseline-output.json` and each probe's `taste.json`.
 
 ## Interaction and responsive evidence
 
-All chain and wallet responses in the interaction suite were explicit local fixtures. External services were intercepted; no wallet key, signature, broadcast transaction or real receipt was used. A fixture wallet rejected each transaction at `eth_sendTransaction`. This verifies routing to the wallet boundary, not mining.
+The thirteen checks covered:
 
-The 15 passing checks cover:
+1. At **390×844**, the product name and enabled Connect control are visible on the first screen. Connect ends at y=61px. The exact existing document title, favicon, description, `og:title` and `og:image` are present. Join is correctly disabled while disconnected.
+2. No sample renderer calls before the sample box approaches the phone viewport. Drawing begins for nearby cards, then all sixteen original ABI inputs are requested exactly once. All sixteen actual renderer SVGs decode. Images retain `loading="lazy"`, `decoding="async"` and the original informative alt text, including edition numbers.
+3. All four requested headings, with the run name alone bold; each heading uses the same four numbers as its Rarity odds row. The Work/rounds/top/blocks paragraph is removed. All sixteen captions are exactly Common, Rare, Epic or Legendary. The Sample cards heading and “examples, not cards anyone owns” note are unchanged.
+4. Geometry at **320, 375, 390, 559, 639, 640, 768, 959, 960, 1024, 1280, 1440, 1920 and 2560px**. Below 640px, two equal filling card columns per group. From 640px, four left-aligned cards in one row, 12px apart, each at most 140px. Below 960px, groups stack; from 960px, Slow / Normal then Good / Great. All desktop titles fit on one rendered line in this browser. Every image keeps the 400:560 ratio, fills the art area, uses `contain` and pixelated rendering. Captions are centered in their specified colors. No page horizontal overflow at any checked width.
+5. Successful renderer calls remain cached through all viewport changes, scrolling away and back, and opening/closing the connection sheet; no extra sample draws.
+6. Keyboard Connect opening, native dialog Escape and focus return, plus all five unchanged Questions opening with Enter and closing with Space. A screenshot confirms the visible focus ring on the first question.
+7. Every other section/row, header and footer has identical HTML and compared computed styling to the input export under identical fixture responses. The 1280px first-screen raster comparison allows only fewer than 0.01% of pixels with at most a one-channel-level difference for border antialiasing; no content/layout differences are accepted. The final run measured **zero different pixels**; earlier comparisons isolated one-level noise to rounded box edges. The full source of those surfaces is byte-identical. Sample box height falls from about **2,003px to 568px**.
+8. A deliberate sample renderer rejection exposes Draw again. Keyboard activation redraws successfully; two calls total for that card confirm the failed promise was removed from the existing cache.
+9. Emulated phone connection sheet retains the four Open in wallet links, marks and Coinbase Smart Wallet row.
+10. Mock EIP-6963 named-wallet connection/disconnection, owned-card SVG display and unrevealed notice. Join, Deliver run 2 and Reveal run 3 retain preceding simulations, original destinations/calldata and gas limits of 1,500,000 / 40,000,000 / 400,000. A local wallet rejects each transaction; the inline error and enabled controls recover.
+11. Separate fixture states reach Leave run 4 with gas 400,000 and approval of exactly 30,000 × 10^18 MILES to the original RunCards spender. Requests are rejected locally at the wallet boundary.
+12. External service failure leaves Connect usable, its sheet available, and Join disabled with existing unavailable guidance.
+13. Reduced motion disables transitions and leaves no running animations. No uncaught page errors or missing local resources in checked contexts.
 
-1. Exactly five unchanged FAQ pairs in the required order. Each native disclosure opens with Enter and closes with Space.
-2. Correct wheel/run/wallet visual order with `order: 0` at 320, 375, 390, 559, 639, 640, 768, 959, 960 and 1440px. Single column below 960px and three equal columns starting at 960px. No page overflow at any of those widths.
-3. Product and enabled Connect control visible on the 390×844 first screen; title, favicon, description, `og:title` and relative `og:image` present. Brand tokens remain `#09090c`, `#f5a83a`, `#5b8cff` and the existing monospace stack.
-4. All four exact footer destinations and the exact line “Unofficial, Sepolia testnet only: test coins and cards have no value.”
-5. The exact run-1 sentence remains in The run box for the early-run fixture and disappears in the run-2 fixture. An unavailable-data fixture keeps Connect usable and Join disabled.
-6. Desktop EIP-6963 named-provider discovery, Coinbase row, keyboard connection-sheet opening, Escape, focus return, connect and disconnect.
-7. Phone sheet with MetaMask, Coinbase Wallet, Rabby and Phantom Open in links and Coinbase Smart Wallet, using the existing page URL.
-8. Join disabled before connection, enabled after a successful simulation from the mock wallet, simulated again on click, then sent to the original contract with `join()` and gas 1,500,000.
-9. Approval simulated before enabling, sent to the original MILES contract with exactly 30,000 × 10^18 and the original RunCards spender.
-10. Leave run 4, Deliver run 2 and Reveal run 3 in a representative history fixture. Each retained the preceding successful wallet simulation, correct calldata and gas limits of 400,000 / 40,000,000 / 400,000. Rejected requests produce an inline error and return controls from the busy state.
-11. Visible-tab Join rechecking using a virtual clock installed before application startup. No extra Join simulation during the early interval, another after the 30-second deadline, none during 90 seconds of hidden time, and a fresh successful check when visible again. The source interval remains 30,000ms. The test allows asynchronous RPC responses to settle after clock advancement.
-12. Owned-card event/read/metadata/SVG display and unrevealed notice; sixteen sample slots with successful lazy SVG drawing; four rarity-odds rows and representative Past runs.
-13. Reduced-motion media state disables transitions and has no running animations.
-14. Preserved sections have identical HTML to the baseline under identical fixture data; the desktop first-screen screenshots are byte-identical. At 375px, the moved boxes retain their widths, heights, padding, borders, radii, font, colors and gaps.
-15. No uncaught page errors or missing local resources in the closed, checked contexts.
+Browser chain/account/market responses were explicit fixtures. Sample SVG responses replayed the successful real renderer reads so layout and caching checks were deterministic. No wallet key, real signature, broadcast transaction, receipt or mining was involved. The fixture results do not establish live wallet success or contract correctness.
 
-In the healthy disconnected run-2 fixture at 390×844, Connect ends at y=61px, The wheel begins at y≈458px, The run at y≈645px, and the full Join button ends at y≈841px. The Join control is correctly disabled while disconnected. The product and enabled Connect remain on the first screen in the unavailable-data state too; longer error text can push Join lower. At 375px, page width and scroll width both measure 375px. At 959px the boxes stack; at 960px they share the same top edge.
+Representative measured final geometry:
 
-Screenshots actually captured and inspected include `test/scratch/shots/final-390.png`, `final-1440.png`, `faq-390.png`, `run1-390.png`, `wallet-phone-390.png`, the baseline/comparison desktop screenshots, and the probe's 390/1440 first-screen/full-page captures under `test/scratch/taste/shots/`. The FAQ capture also shows its keyboard focus ring. Fixture screenshots show test data, not claimed live readings. No screenshots are required runtime assets; scratch captures are not submitted.
+| Viewport | Card image | Sample box height | Page overflow |
+| --- | --- | --- | --- |
+| 375px | 148.5 × 207.9px | 2,305px | None |
+| 640px | 134.5 × 188.3px | 1,115px | None |
+| 768 / 959px | 140 × 196px | 1,146px | None |
+| 960px | 100.25 × 140.34px | 484px | None |
+| 1280 / 1440 / 1920 / 2560px | 130.25 × 182.34px | About 568px | None |
 
-## Better Interface coverage
+Screenshots actually captured and inspected: `test/scratch/shots/final-390.png`, `samples-375.png`, `samples-960.png`, `samples-1280.png`, `questions-keyboard-390.png`, `final-first-1280.png` and its baseline/comparison images. Additional captures include `samples-640.png`, `samples-1440.png`, `wallet-phone-390.png` and probe captures under `test/scratch/taste/shots/`. Fixture screenshots are not presented as live game state.
 
-| Domain | Coverage | Findings / limitations |
+## Better Interface six-domain review
+
+Applied the pinned Better Interface workflow and core principles during implementation, then reviewed the production export. The explicit brief to preserve the existing appearance governs unrelated style findings.
+
+| Domain | Coverage | Limitations |
 | --- | --- | --- |
-| Accessibility | **Checked:** native section/heading/disclosure/button/dialog semantics, visible focus source and captured FAQ focus, keyboard FAQ and connect/Escape/focus-return paths, disabled-state descriptions and reduced motion. Probe target-spacing check passes. | Existing small/dim labels retain their contrast limitation. No screen-reader session, exhaustive focus walk, forced-colors audit, automated full accessibility audit or native 200% zoom. |
-| Layout | **Checked:** DOM/visual order, 960px breakpoint and adjacent widths, source grids/wrapping, 10 rendered widths, first screen, mobile/desktop screenshots and no sideways overflow. | No RTL mirror or pseudo-localization; the existing English-only interface and copy were preserved. |
-| Writing | **Checked:** exact five FAQ pairs and order, removed answers absent, run-1 notice retained, original button/error/empty-state copy and exact footer. | No other copy changes were authorized. The existing headline and vocabulary remain. |
-| Typography | **Checked:** existing source/computed font stacks, 400/700 weights, scale, heading tracking, wrapping at narrow widths, tabular-number rules; baseline/final presentation comparisons. | Monospace/uppercase/tracked headings are required existing style. Physical font availability on other operating systems is not verified. |
-| Colors | **Checked:** exact existing tokens, probe-computed solid-background text contrast on initial unavailable states, identical brand styling before/after. | The dim-label pair is below the ordinary small-text contrast threshold. No claim that every possible connected/disabled/image-background pair passes. No palette changes within this preservation-only task. |
-| UI | **Checked:** native disclosure states, connect sheet, pending/rejected action behavior, loading/unavailable/card states, existing hover/pressed/focus CSS, restrained 150ms transitions and reduced motion. | No physical touch-device run, slow-motion animation-panel inspection or full success/mined-transaction flow. No new component or feature was added. |
+| Accessibility | **Checked:** existing semantic headings/lists/images, informative alt text, rarity text in addition to color, keyboard retry, Questions and native dialog paths/focus return, existing visible focus ring, reduced motion, target-spacing probe. | No screen-reader session, exhaustive focus walk, forced-colors audit, full automated accessibility audit or native 200% zoom. |
+| Layout | **Checked:** four-group DOM/visual order, fourteen widths and both breakpoint boundaries, left alignment, exact gaps, artwork geometry, mobile reflow, first screen, preservation comparisons and screenshots. | No RTL mirror, pseudo-localization or physical-device run; English-only content and existing layout outside samples preserved. |
+| Writing | **Checked:** exact requested sample titles and captions, reuse of unchanged odds, removal of redundant work metadata, retained ownership disclaimer and unchanged other text. | No broader copy rewrite was authorized. |
+| Typography | **Checked:** existing tokens/stacks/weights; 14px group titles with 400/700 distinction and 1.55 line-height; desktop single-line fit, phone wrapping and centered captions; probe scale checks. | OS-specific font fallbacks and native text enlargement not checked. Existing monospace prose, uppercase and tracked box headings are preserved by the brief. |
+| Colors | **Checked:** exact unchanged tokens; rendered caption foregrounds against actual `#101015` box background. Common **16.26:1**, Rare **6.00:1**, Epic **6.18:1**, Legendary **9.53:1**, each above 4.5:1. Probe checked resolved solid-background pairs. | Existing dim stat/table labels fail ordinary small-text contrast; no claim covering every connected/disabled/image-background state. No alternate theme exists. |
+| UI | **Checked:** unchanged box/art surfaces, lazy/loading/drawn/error/retry states, promise cache, dialog and action rejection recovery, restrained existing 150ms transitions and reduced motion. | No animation-panel slow playback, physical touch device or mined transaction success flow. Samples add no animation or interactive control. |
 
-## Findings, fixes and preserved exceptions
+## Findings, fixes and preserved limitations
 
-| Finding / source | Evidence and impact | Change / recheck |
+| Finding / source | Evidence / impact | Fix and recheck |
 | --- | --- | --- |
-| Medium: extra FAQ entries, `web/src/App.tsx:460` | Baseline had seven entries, including both questions requested for removal. | Deleted those two complete `details` blocks. Five exact remaining pairs passed pointer-independent keyboard interaction and source/render checks; native flow closes the gap. |
-| Medium: phone visual order, `web/src/styles.css:96` | Baseline `@media (max-width: 959px) { .row-3 > #run { order: -1; } }` moved The run before The wheel despite the correct DOM order. | Removed that rule and its now-obsolete comment. Ten-width recheck passes, including 375, 959 and 960px; desktop pixels unchanged. |
-| Low: stale delivery documentation, `README.md`, `DESIGN.md` | Input documents described the older CARDIO addresses, root source layout, sans typography and older grid. | Updated to the active `web/` app, actual tokens, current contracts and observed final layout. |
-| Low: source/export share-image mismatch, `web/public/og.png` | A normal rebuild initially copied a different source share image over the existing exported image. | Synchronized source to the prior export image, rebuilt, and checked byte equality with the prior `dist/og.png`. The live-facing image and favicon are unchanged. |
-| Existing accessibility limitation: dim labels, `web/src/styles.css:11`, stat/table label rules | Both baseline and final probe measured `#62626e` text on `#101015` at **3.15:1**, below 4.5:1 for small text. | Preserved under “Keep everything else exactly as it is” / “The look stays exactly the current site's.” Recorded as a limitation, not a passed contrast check. |
-| Existing style exceptions: `web/src/styles.css:50`, `:85`, `:113` | Both probes flag uppercase content, 2.2px heading tracking (≈0.183em), and monospace prose. | Preserved as the brief's explicit current appearance. These flags are not newly introduced and do not authorize a redesign. |
+| Medium: oversized samples, `web/src/styles.css:203` | Input at 1280px had four full-width run rows and a roughly 2,003px box. | Four capped tracks per group from 640px; two group columns from 960px; minimum widths permit shrinking within the existing container. Fourteen-width geometry check passes; about 568px at 1280px. |
+| Medium: redundant sample metadata, `web/src/Samples.tsx:44` | The original separate headings and Work/rounds/top/blocks paragraphs repeated information in the art and omitted odds. | One title containing bold name, distance and unchanged `ODDS` values; all four exact-title/table comparisons pass. |
+| Low: duplicated edition captions, `web/src/Samples.tsx:34`, `web/src/styles.css:206` | Edition appeared both on the card and below it; captions were not centered. | Removed the caption edition span and centered only sample captions. Labels and colors pass; edition remains in SVG and alt text. |
+| Existing contrast limitation, `web/src/styles.css:11`, `:129`, `:219` | Both baseline and final probes measure dim `#62626e` labels on `#101015` at **3.15:1**, below 4.5:1 for small text. | Preserved under “Keep everything else exactly as it is” and “the look stays exactly the current site's.” New sample title/caption colors pass. |
+| Existing style exceptions, `web/src/styles.css:50`, `:85`, `:113` | Both probes flag uppercase content, 2.2px box-heading tracking (about 0.183em) and monospace prose. | Preserved as explicitly requested appearance. No palette, font, headline or unrelated component edits. |
 
-The probe's twelve passing categories are render, layout, targets, eyebrows, type-sizes, glyphs, slogans, repetition, copy-budget, chrome, motion and share. The four flagged categories are contrast, casing, tracking and type-faces. Both baseline and final have these same results. The target check reports all 12 measured controls at least 24px or sufficiently spaced, while all 12 are below its 44px comfort preference. The initial offline probe does not establish every connected state; those are covered only to the extent described in the interaction checks.
+The twelve passing probe categories are render, layout, targets, eyebrows, type-sizes, glyphs, slogans, repetition, copy-budget, chrome, motion and share. The four flags are contrast, casing, tracking and type-faces. Both input and final exports have the same category results. These are recorded limitations, not sixteen passed categories.
 
 ## Remaining limits
 
-The provided browser connector failed before navigation with `Socket path too long`. Direct Playwright 1.56.1 / Chromium Headless Shell 141 supplied actual rendered verification. WebKit was downloaded and launch attempted, but it could not run because host libraries (including GTK4 and Graphene) were unavailable. No WebKit behavior is claimed.
+The supplied browser connector failed before navigation with `Socket path too long`; direct Playwright Chromium supplied rendered screenshots and interaction verification. WebKit was installed and launch attempted but required host libraries, including GTK4 and Graphene, were unavailable. No WebKit behavior is claimed.
 
-No real wallet/passkey/mobile-app connection, signature, live service check, transaction receipt, mining, multi-transaction sync completion, long history load test, screen reader, physical phone or native browser zoom was tested. Existing chain and wallet functionality was preserved by a narrow source diff and representative mock boundary checks. These checks do not certify the contracts or external services. No unavailable requester input was needed.
+No real wallet/passkey/mobile-app connection, signature, receipt, mining, full sync completion, long-history load test, screen reader, physical phone or native browser zoom was tested. Broader live service availability was not audited beyond the successful sixteen renderer reads. No other UI or chain behavior was modified to work around these limitations.
