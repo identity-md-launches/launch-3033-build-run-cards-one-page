@@ -1,128 +1,94 @@
 # Run Cards design
 
-The site is one dark page. A warm orange accent marks the one primary action, cards have rounded corners, and a pixel-art hamster is the only illustration. All values below come from `src/styles.css`, `src/App.tsx` and `src/Hamster.tsx` as built.
+## Overview
+
+Run Cards is a one-page Sepolia game interface for people joining Squeektoshi's runs with 30,000 test $MILES. The existing design uses a near-black page, outlined boxes, monospace copy, orange actions, blue accents and a dot-matrix title. This revision preserves that system. It removes two FAQ entries and makes the wheel/run/wallet reading order consistent on phones and desktop.
+
+The source of truth is `web/src/styles.css`, with page composition in `web/src/App.tsx` and shared `Box` and `Stat` components in `web/src/ui.tsx`. The committed static export lives in `dist/`.
 
 ## Colors
 
-The color system has two tiers. Primitives name a value. Components use only the role tokens.
+All tokens are defined on `:root` in `web/src/styles.css`. The existing notation is hexadecimal; `color-scheme` is dark.
 
-| Role token | Primitive | Value | Used for |
-| --- | --- | --- | --- |
-| `--color-bg` | `--brown-950` | `#15100c` | Page background, image wells |
-| `--color-surface` | `--brown-900` | `#1f1712` | Cards, connect sheet |
-| `--color-surface-raised` | `--brown-850` | `#2a2019` | Secondary buttons, sheet rows, status line |
-| `--color-border` | `--brown-800` | `#3a2d23` | Card borders, table and FAQ dividers, hover fill |
-| `--color-border-strong` | `--brown-700` | `#54422f` | Button borders, resting dot |
-| `--color-text` | `--sand-100` | `#f6ece1` | Body text, headings |
-| `--color-text-muted` | `--sand-300` | `#c9b8a6` | Labels, captions, FAQ answers |
-| `--color-accent` | `--orange-400` | `#ff9a45` | Primary button fill, links, step titles, "not revealed" note |
-| `--color-accent-hover` | `--orange-300` | `#ffb06b` | Primary hover, link hover |
-| `--color-on-accent` | `--orange-950` | `#1a0e04` | Text on the primary button |
-| `--color-ok` | `--green-300` | `#8fdc9a` | Running dot, "You are in run N", success status edge |
-| `--color-err` | `--red-300` | `#ff9c8c` | Wallet notes, error status edge |
-| `--color-focus` | `--sand-100` | `#f6ece1` | Focus ring |
+| Token | Value | Implemented role |
+| --- | --- | --- |
+| `--bg` | `#09090c` | Page background |
+| `--box` | `#101015` | Boxes and connection dialog |
+| `--raised` | `#17171e` | Secondary buttons, art placeholders and progress track |
+| `--line` | `#24242d` | Box outlines, dividers, dialog rows |
+| `--line-strong` | `#34343f` | Button outlines |
+| `--text` | `#ededf2` | Body text and focus ring |
+| `--muted` | `#9a9aa6` | Descriptions, notes, secondary text |
+| `--dim` | `#62626e` | Stat labels and table headings |
+| `--orange` | `#f5a83a` | Primary actions, links, run marker, notes |
+| `--orange-hover` | `#ffc46b` | Primary/link hover |
+| `--on-orange` | `#1a1006` | Text on orange buttons |
+| `--blue` | `#5b8cff` | Title, wallet/sample markers, Rare, price line |
+| `--green` | `#3ddc84` | Running/success, buys, progress and wheel marker |
+| `--purple` | `#c26bff` | Cards/rarity markers and Epic |
+| `--red` | `#ff5b6b` | Errors, sells and negative price changes |
 
-`color-scheme: dark`. The taste probe measured every rendered text pair at 4.5:1 or better (3:1 for large text). That run covered the page's connection-error state. The live-data state uses the same tokens.
-
-The revision keeps the existing palette, CSS, typography and layout. Error notices use `.small.note` with `--color-err` on `--color-surface`; their wording identifies the unavailable data and retry interval. The final offline probe passed all 16 checks, including the new notices. See `artifacts/validation.md` for the six-domain review and its limits.
-
-Hamster art colors live in `src/Hamster.tsx`:
-
-| Part | Color |
-| --- | --- |
-| Fur | `#e8913a` |
-| Cream | `#f7dfbd` |
-| Pink | `#f4a3ad` |
-| Eye | `#1b1310` |
-| Highlight | `#fff7ec` |
+Secondary hover uses `#1f1f28` / `#44444f`; pressed controls use `#272732`, or `#e88b1f` for the primary action. Status text carries the meaning in addition to color. Rendered contrast limitations, including the existing dim labels, are recorded in `VALIDATION.md`; this is not a claim of full accessibility compliance.
 
 ## Typography
 
-There is one family, `--font-sans` (`system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`). `--font-mono` (`ui-monospace, "SF Mono", Menlo, Consolas, monospace`) is defined for addresses in the wallet stats. No web fonts are loaded.
-
-The type scale has five sizes:
+No downloadable font is required. `--font-mono` is `ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`; it is used for body copy, labels, headings and controls. `--font-num` is `"Arial Narrow", "Roboto Condensed", Arial, sans-serif`; it is used for the tagline, stat values and odds numbers. Actual system fallbacks depend on the visitor's device.
 
 | Token | Size | Role |
 | --- | --- | --- |
-| `--fs-xl` | 2rem / 32px | `h1` "Run Cards": weight 800, -0.02em, line-height 1.15 |
-| `--fs-lg` | 1.375rem / 22px | `h2` section headings: weight 800, -0.01em |
-| `--fs-md` | 1.125rem / 18px | `h3`, live state, stat values, sheet title: weight 600 |
-| `--fs-base` | 1rem / 16px | Body (line-height 1.5), buttons (weight 600, line-height 1.25) |
-| `--fs-sm` | 0.8125rem / 13px | Captions, stat labels, hints, table, card attributes |
+| `--fs-label` | 11px | Stat/table/attribute labels and phone brand line |
+| `--fs-ui` | 12px | Box headings, notes, buttons, desktop brand line |
+| `--fs-small` | 14px | Lede, captions, FAQ answers, table cells |
+| `--fs-body` | 15px | Body text, card names and subsection headings |
+| `--fs-value` | 20px | Stat values and dialog close glyph |
+| `--fs-tag` | 34px | Tagline; 28px below 560px |
 
-- **Weights:** 400, 600 and 800 only. `strong` is set to 600.
-- **Wrapping:** headings use `text-wrap: balance` and paragraphs use `pretty`.
-- **Line length:** the lede is capped at 60ch, How-it-works at 70ch and FAQ answers at 65ch.
-- **Numbers:** changing values use `font-variant-numeric: tabular-nums` (`.num`, `.stat dd`).
-- **Casing:** no all-caps text and no tracked labels anywhere.
+Weights are 400 and 700. Body line-height is 1.55; headings and controls use 1.2, the tagline 1.1, stats 1.25 and odds 1.3. Box headings are uppercase with 2.2px tracking; the top brand line uses 2px, reduced to 1px below 560px. Stat labels, table headings and buttons retain their existing uppercase treatment. Paragraphs use `text-wrap: pretty`; the tagline uses `balance`. The lede has an 80ch measure. Changing numbers use tabular figures; stat values allow wrapping anywhere.
 
-## Spacing, radius, motion
+`DotTitle` in `web/src/DotTitle.tsx` renders the accessible h1 as fixed SVG dots. The existing orange/blue wordmark, pixel hamster, circular logo, favicon and local share-image assets are retained.
 
-- **Spacing:** a 4px base, with `--space-1` to `--space-6` = 4, 8, 12, 16, 24, 32px.
-- **Grid gap:** `--grid-gap` is 16px on mobile and 24px from 60rem.
-- **Card padding:** 16px on mobile and 24px from 60rem.
-- **Radius:** `--radius-card` 20px (cards, sheet), `--radius-control` 12px (buttons, rows, card images, status line), and 3px squares for the live dot.
-- **Easing:** `--ease: cubic-bezier(0.2, 0, 0, 1)`. Transitions name their properties: background-color, border-color, color and scale, all over 150ms.
-- **Press:** a pressed button scales to 0.96.
-- **Live dot:** pulses only under `prefers-reduced-motion: no-preference`.
-- **Surfaces:** a border only, never a border and a shadow together. Cards are never nested.
+## Layout
+
+The `.wrap` container has a 1200px maximum width, centered with 16px inline padding, 12px top padding and 28px bottom padding. `.page` and `.row` have 12px gaps. Spacing tokens are `--s1` through `--s6`: 4, 8, 12, 16, 20 and 28px. Boxes use 16px padding and 12px internal gaps.
+
+The page retains this sequence: header, hero, wheel/run/wallet row, $MILES, transaction status, My cards/Deliver and reveal, Sample cards, Rarity odds, Past runs, How it works/Questions, footer.
+
+| Width | Implemented behavior |
+| --- | --- |
+| Below 960px | All `.row` layouts have one column. The three boxes follow DOM order: **The wheel → The run → Your wallet**. No `order` override is applied. |
+| 960px and wider | `.row-3` has three equal columns, wheel/run/wallet left to right. `.row-2-1` uses a 2:1 split. |
+| Below 640px | Sample rows have two columns; the connect dialog becomes a bottom sheet with safe-area padding. |
+| 640px and wider | Sample rows have four columns; `.stats-4` has four columns. |
+| Below 560px | Smaller tagline and brand line; disconnect text is hidden visually; tables become labelled two-column row blocks. |
+
+Stats use two columns by default. My cards use an auto-fill grid with a 150px minimum tile width. Card artwork has a 400:560 aspect ratio. The $MILES chart is 170px tall. Tables retain their data in mobile blocks and have an overflow wrapper. `min-width: 0`, wrapping and responsive grids prevent page overflow without clipping the page.
+
+Chromium verification covered 320, 375, 390, 559, 639, 640, 768, 959, 960 and 1440px. At 390×844 the product name and enabled Connect control are on the first screen. Detailed state-dependent action positions and limitations are in the validation record.
+
+## Elevation & Depth
+
+The design is flat: box/raised tones and 1px borders provide structure. The live green dot has a 4px translucent green halo. The native modal dialog has a 70% black backdrop. The skip link uses `z-index: 10` and becomes visible on focus. There are no added gradients or shadows on the boxes.
+
+## Shapes
+
+`--r-box` is 14px; `--r-btn` is 8px. Art containers use a 10px radius; wallet icons use 6px; the focus ring uses 4px. Section markers are 10px squares. The live dot and chart dots are circles; the graduation bar is 4px tall with a 2px radius. Only art, icons and progress tracks use intentional clipping.
 
 ## Components
 
-- **Header (`.top`):**
-  - Row one has the pixel hamster (32px) and the `h1` on the left and the wallet control on the right.
-  - The lede and the disclaimer "Unofficial, on Sepolia testnet. Test coins only." sit under it.
-  - When connected, the wallet control shows `0x1234…abcd`, and adds "· Disconnect" from 30rem. Its accessible name is always "0x1234…abcd, disconnect".
-- **Buttons (`.btn`, `.btn-primary`, `.btn-wide`):**
-  - Minimum height 44px, 16px inline padding.
-  - Four states: rest, hover (only on `hover: hover` devices), pressed, and `:focus-visible` (2px solid focus color, 2px offset).
-  - Disabled buttons drop to 50% opacity with `not-allowed`.
-  - Only Join (or Connect / Switch to Sepolia) is filled orange.
-- **Card (`.card`):** surface fill, 1px border, 20px radius, grid with 12px internal gap.
-- **Live wheel (`.live`):** a 12px status dot (green and pulsing when running) next to "Running now / Resting · x.x km/h", with a caption for the settled round and Squeekchain block. The text carries the state; color only repeats it.
-  - After a failed refresh, retained wheel and settled values say "Last known". A stale wheel dot stops pulsing. Separate service notices remain visible even when a previous reading exists.
-  - If no reading has ever loaded, the heading names the unavailable wheel and the note supplies the retry interval without repeating the heading. Failed chain/account reads show joining as "Unknown" and clear wallet action checks.
-- **Stats (`.stats`):** a `dl` grid, `auto-fit, minmax(130px, 1fr)`, with a 13px muted label over an 18px semibold value.
-- **Status line (`.msg`):**
-  - It is always in the DOM (`role="status"`, polite), so screen readers announce each update.
-  - While empty it is taken out of the grid flow (`position: absolute`), so it adds no gap.
-  - With text it shows a raised fill and a 4px leading edge in accent, ok or err.
-- **Connect sheet (`dialog.sheet`):**
-  - It is a native modal dialog: the background is inert, Escape closes it, and so do a backdrop click and the 32px × button.
-  - Rows are at least 48px tall: icon (28px), then the name, and "· opening…" while pending.
-  - Up to 420px wide. Under 40rem it becomes a bottom sheet with safe-area padding.
-  - Discovered provider buttons are shown on phones as well as desktop, including providers with no legacy `window.ethereum` global. Mobile "Open in" links appear only when no provider was discovered.
-- **My cards (`.card-grid`, `.nft`):** an `auto-fill, minmax(200px, 1fr)` list with no tile chrome.
-  - The image is square, `image-rendering: pixelated`, with a 12px radius and a 1px `oklch(1 0 0 / 0.1)` outline.
-  - Under the image: name, run and token, the "Not revealed yet" note, then attributes as a two-column `dl`.
-  - An ownership/read error uses a persistent status region with "Could not read your cards" and the five-minute retry. Previous cards may stay visible with a last-reading warning; a failed read never becomes "No cards yet". Wallet changes immediately hide the previous wallet's cards and actions.
-- **Deliver and reveal (`.ended`):** the guidance distinguishes delivery after a run ends from reveal after the next run settles. Loading has its own message. Before connection, eligible reveal runs are named individually with a connect instruction. Its action candidates have no age cutoff; the eight-row limit belongs only to the Past runs table.
-- **Past runs table:**
-  - The table uses 13px text with dividers only. Above 30rem cells don't wrap.
-  - Under 30rem the header is visually hidden and each row becomes a two-column labelled block (`td::before { content: attr(data-label) }`), so no column is cut off.
-- **How it works:** an ordered list, each step opening with an orange semibold title.
-- **FAQ:** native `details`/`summary` with top dividers.
-- **Footer:** links to the RunCards contract and $CARDIO on Etherscan, $CARDIO on Wheelpad, and Squeekchain. Each link has 10px block padding for touch.
-- **Skip link:** the first focusable element. It is hidden until focused.
+- **Box / Stat** (`web/src/ui.tsx`): labelled section with a colored decorative square and optional note; stats are semantic `dt`/`dd` pairs inside the caller's `dl`.
+- **Buttons** (`.btn`, `.btn-primary`, `.btn-wide`, `.btn-small`): primary orange and secondary raised variants, 40px default minimum height or 32px small. Hover/pressed fills, native disabled state at 50% opacity and a 2px focus-visible ring with 2px offset. Transitions name background/border colors, last 150ms and use `--ease: cubic-bezier(0.2, 0, 0, 1)`. Reduced motion disables transitions and animations.
+- **Wallet sheet** (`web/src/ConnectSheet.tsx`): one Connect control, native modal dialog, named EIP-6963 providers, Coinbase Wallet, and four phone Open in links plus Coinbase Smart Wallet. Rows are at least 48px; close is 32px. Escape/backdrop/close dismiss; the native dialog restores focus. Pending and cancellation states remain inline. Existing wrong-network and disconnect controls remain.
+- **Wheel and run** (`web/src/App.tsx`): live/last-known/loading/error states, stats, Join and conditional Leave actions. The run-1 notice remains until a later run starts. Free wallet simulations determine actions; visible-tab Join checks remain every 30 seconds.
+- **$MILES** (`web/src/Miles.tsx`): curve stats, price/trade chart, graduation indicator, Wheelpad link and existing unavailable/last-reading states.
+- **Cards** (`web/src/App.tsx`, `web/src/Samples.tsx`): owned-card metadata and on-chain SVGs; sixteen explicitly labelled samples with lazy drawing and Draw again recovery. Rarity colors reuse existing tokens.
+- **Deliver/reveal and status** (`web/src/App.tsx`): simulation-gated actions, existing busy labels and a persistent polite status region. Existing empty/read-error guidance remains.
+- **Questions** (`web/src/App.tsx`): five native `details`/`summary` disclosures in the requested order. Removed entries leave no placeholder gap. Each summary is at least 32px high.
+- **Footer** (`web/src/App.tsx`): four unchanged external links and the exact Sepolia/no-value disclaimer.
 
-## Responsive behavior
+## Do's and Don'ts
 
-- **Mobile first, one column.** At 390 wide the first screen shows:
-  - the header with Connect;
-  - the live wheel;
-  - "This run" with its Join button and hint;
-  - the wallet card.
-- **From 60rem (960px), a two-column grid (3fr / 2fr):**
+Reuse `Box`, `Stat`, `.row` and the existing token roles. Keep controls distinct, use the existing focus ring and preserve accompanying status text. For another surface, start inside `.wrap` / `.page`, compose the existing boxes and choose the established responsive grid; the current delivery remains one page.
 
-  | Row | Left | Right |
-  | --- | --- | --- |
-  | 1 | live (both columns) | |
-  | 2 | run | wallet |
-  | 3 | status line (both columns) | |
-  | 4 | my cards | deliver and reveal |
-  | 5 | past runs (both columns) | |
-  | 6 | how it works | questions |
+Preserve the dot title, system font stacks, palette, existing copy and density. Preserve DOM order on phones rather than visually reordering focusable sections. Keep contract configuration, wallet connectors, reads and transaction code outside presentation-only changes.
 
-- **Width:** the content column is at most 1120px with 16px inline margins.
-- **Measured in this revision:** no horizontal scroll at 320, 375, 390, 768, 960 or 1440. In the healthy 390×844 fixture, the Join button ends at about 522px from the top; Connect and the product name are also on the first screen. Initial failure and retained-reading states keep the main action visible.
-- **Header wrapping:** `.top-row` permits wrapping when its contents need it. The connected fixture address and product name fit on one row at 390 in Chromium; the row can wrap at narrower widths. The full disconnect label remains in the accessible name.
+Design review used the pinned Better Interface guidance by Jakub Krehel (MIT, commit `267330e1adfc66a718fb65fa6918c1f06d0a689e`). Documentation structure follows the pinned Impeccable guidance by Paul Bakaus (Apache-2.0, commit `9d715cc4f5564a990ca8345abfdd5df6dc9b41c8`).

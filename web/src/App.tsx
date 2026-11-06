@@ -467,10 +467,6 @@ export function App() {
                 <p>Once a settled round with no work follows his last one, or when 100 runners are in.</p>
               </details>
               <details>
-                <summary>Why can’t I join run 1?</summary>
-                <p>Run 1 was already under way when Run Cards was deployed, so nobody can join it. The first joinable run is run 2.</p>
-              </details>
-              <details>
                 <summary>Where do I get $MILES?</summary>
                 <p>On the $MILES Wheelpad curve, for Sepolia ETH. Joining needs 30,000.</p>
               </details>
@@ -481,10 +477,6 @@ export function App() {
               <details>
                 <summary>Are there fees or an owner?</summary>
                 <p>Run Cards takes no fee and has no owner. You only pay Sepolia test gas.</p>
-              </details>
-              <details>
-                <summary>Why did a button stay disabled?</summary>
-                <p>Each button checks with a free simulation from your wallet first and turns on only when the call would work. Join checks again every 30 seconds.</p>
               </details>
             </Box>
           </div>

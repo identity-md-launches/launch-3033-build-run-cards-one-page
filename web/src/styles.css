@@ -94,8 +94,6 @@ img { max-width: 100%; }
 .box-note { font-size: var(--fs-ui); color: var(--muted); }
 
 .row { display: grid; gap: var(--s3); }
-/* On phones the run (with Join) comes straight after the hero, so the main action is on the first screen. */
-@media (max-width: 959px) { .row-3 > #run { order: -1; } }
 @media (min-width: 960px) {
   .row-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .row-2-1 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
