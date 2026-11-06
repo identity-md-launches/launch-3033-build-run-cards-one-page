@@ -32,11 +32,6 @@ async function post(url: string, method: string, params: unknown[]): Promise<unk
   }
 }
 
-/** True when the node answered properly and the call itself reverted: retrying elsewhere won't help. */
-function isRevert(e: unknown): boolean {
-  return e instanceof RpcError && (e.code === 3 || /revert/i.test(e.message));
-}
-
 /** Try each public RPC in order; move on after any error or a 15 s timeout. */
 export async function rpc<T = unknown>(method: string, params: unknown[]): Promise<T> {
   let last: unknown;
@@ -44,7 +39,6 @@ export async function rpc<T = unknown>(method: string, params: unknown[]): Promi
     try {
       return (await post(url, method, params)) as T;
     } catch (e) {
-      if (isRevert(e)) throw e;
       last = e;
     }
   }

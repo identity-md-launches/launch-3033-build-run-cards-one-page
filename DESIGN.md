@@ -24,6 +24,8 @@ The color system has two tiers. Primitives name a value. Components use only the
 
 `color-scheme: dark`. The taste probe measured every rendered text pair at 4.5:1 or better (3:1 for large text). That run covered the page's connection-error state. The live-data state uses the same tokens.
 
+The revision keeps the existing palette, CSS, typography and layout. Error notices use `.small.note` with `--color-err` on `--color-surface`; their wording identifies the unavailable data and retry interval. The final offline probe passed all 16 checks, including the new notices. See `artifacts/validation.md` for the six-domain review and its limits.
+
 Hamster art colors live in `src/Hamster.tsx`:
 
 | Part | Color |
@@ -78,6 +80,8 @@ The type scale has five sizes:
   - Only Join (or Connect / Switch to Sepolia) is filled orange.
 - **Card (`.card`):** surface fill, 1px border, 20px radius, grid with 12px internal gap.
 - **Live wheel (`.live`):** a 12px status dot (green and pulsing when running) next to "Running now / Resting · x.x km/h", with a caption for the settled round and Squeekchain block. The text carries the state; color only repeats it.
+  - After a failed refresh, retained wheel and settled values say "Last known". A stale wheel dot stops pulsing. Separate service notices remain visible even when a previous reading exists.
+  - If no reading has ever loaded, the heading names the unavailable wheel and the note supplies the retry interval without repeating the heading. Failed chain/account reads show joining as "Unknown" and clear wallet action checks.
 - **Stats (`.stats`):** a `dl` grid, `auto-fit, minmax(130px, 1fr)`, with a 13px muted label over an 18px semibold value.
 - **Status line (`.msg`):**
   - It is always in the DOM (`role="status"`, polite), so screen readers announce each update.
@@ -87,9 +91,12 @@ The type scale has five sizes:
   - It is a native modal dialog: the background is inert, Escape closes it, and so do a backdrop click and the 32px × button.
   - Rows are at least 48px tall: icon (28px), then the name, and "· opening…" while pending.
   - Up to 420px wide. Under 40rem it becomes a bottom sheet with safe-area padding.
+  - Discovered provider buttons are shown on phones as well as desktop, including providers with no legacy `window.ethereum` global. Mobile "Open in" links appear only when no provider was discovered.
 - **My cards (`.card-grid`, `.nft`):** an `auto-fill, minmax(200px, 1fr)` list with no tile chrome.
   - The image is square, `image-rendering: pixelated`, with a 12px radius and a 1px `oklch(1 0 0 / 0.1)` outline.
   - Under the image: name, run and token, the "Not revealed yet" note, then attributes as a two-column `dl`.
+  - An ownership/read error uses a persistent status region with "Could not read your cards" and the five-minute retry. Previous cards may stay visible with a last-reading warning; a failed read never becomes "No cards yet". Wallet changes immediately hide the previous wallet's cards and actions.
+- **Deliver and reveal (`.ended`):** the guidance distinguishes delivery after a run ends from reveal after the next run settles. Loading has its own message. Before connection, eligible reveal runs are named individually with a connect instruction. Its action candidates have no age cutoff; the eight-row limit belongs only to the Past runs table.
 - **Past runs table:**
   - The table uses 13px text with dividers only. Above 30rem cells don't wrap.
   - Under 30rem the header is visually hidden and each row becomes a two-column labelled block (`td::before { content: attr(data-label) }`), so no column is cut off.
@@ -117,5 +124,5 @@ The type scale has five sizes:
   | 6 | how it works | questions |
 
 - **Width:** the content column is at most 1120px with 16px inline margins.
-- **Measured:** no horizontal scroll at 320, 390 or 1440 (taste probe and interaction test).
-- **Known wrap:** at 390 a connected wallet's address button wraps under the name. It needs about 380px beside the 32px title, which is more than the row has. It wraps cleanly and doesn't overflow.
+- **Measured in this revision:** no horizontal scroll at 320, 375, 390, 768, 960 or 1440. In the healthy 390×844 fixture, the Join button ends at about 522px from the top; Connect and the product name are also on the first screen. Initial failure and retained-reading states keep the main action visible.
+- **Header wrapping:** `.top-row` permits wrapping when its contents need it. The connected fixture address and product name fit on one row at 390 in Chromium; the row can wrap at narrower widths. The full disconnect label remains in the accessible name.

@@ -27,6 +27,7 @@ export type ChainState = {
   settledRound: bigint;
   blockHeight: bigint;
   runs: RunInfo[]; // newest first, at most RECENT
+  actionRuns: RunInfo[]; // all undelivered or unrevealed runs, regardless of age
   revealRounds: Record<number, bigint>;
 };
 
@@ -58,12 +59,17 @@ export async function loadChain(): Promise<ChainState> {
     read(CORE, coreAbi, "state"),
   ]);
   const runCount = Number(rc[0]);
-  const nums: number[] = [];
-  for (let n = runCount; n >= 1 && nums.length < RECENT; n--) nums.push(n);
-  const runs = await Promise.all(nums.map(getRun));
+  // The history table is short, but actions never expire. Read every run in
+  // bounded batches so older deposits and unrevealed cards remain reachable.
+  const allRuns: RunInfo[] = [];
+  for (let end = runCount; end >= 1; end -= RECENT) {
+    const nums = Array.from({ length: Math.min(RECENT, end) }, (_, i) => end - i);
+    allRuns.push(...await Promise.all(nums.map(getRun)));
+  }
+  const actionRuns = allRuns.filter((r) => !r.startedEarly && (r.minted === 0 || !r.revealed));
   const revealRounds: Record<number, bigint> = {};
   await Promise.all(
-    runs.filter((r) => r.minted > 0 && !r.revealed).map(async (r) => {
+    actionRuns.filter((r) => r.minted > 0 && !r.revealed).map(async (r) => {
       const res = await read(RUNCARDS, runCardsAbi, "revealOf", [r.n]);
       revealRounds[r.n] = res[0];
     }),
@@ -74,7 +80,8 @@ export async function loadChain(): Promise<ChainState> {
     running: rn[0],
     settledRound: st[0].settledThroughRound,
     blockHeight: st[0].blockHeight,
-    runs,
+    runs: allRuns.slice(0, RECENT),
+    actionRuns,
     revealRounds,
   };
 }
@@ -114,7 +121,7 @@ export async function loadAccount(me: string, chain: ChainState, wheelRunning: b
   }
 
   // Runs not yet delivered, where leaving or delivering may apply.
-  const open = chain.runs.filter((r) => r.minted === 0 && !r.startedEarly);
+  const open = chain.actionRuns.filter((r) => r.minted === 0);
   const joinedFlags = await Promise.all(open.map((r) => read(RUNCARDS, runCardsAbi, "joined", [r.n, me]).then((x) => x[0] as boolean)));
   const joinedRuns = open.filter((_, i) => joinedFlags[i]).map((r) => r.n);
   const leaveSims = await Promise.all(joinedRuns.map((n) => simulate(RUNCARDS, runCardsAbi, "leave", [n], me, GAS.leave)));
@@ -136,7 +143,7 @@ export async function loadAccount(me: string, chain: ChainState, wheelRunning: b
   }
 
   const reveal: number[] = [];
-  for (const r of chain.runs.filter((r) => r.minted > 0 && !r.revealed)) {
+  for (const r of chain.actionRuns.filter((r) => r.minted > 0 && !r.revealed)) {
     const round = chain.revealRounds[r.n] ?? 0n;
     if (round === 0n || round > chain.settledRound) continue;
     const sim = await simulate(RUNCARDS, runCardsAbi, "reveal", [r.n], me, GAS.reveal);
@@ -207,8 +214,8 @@ export async function loadCards(me: string, known: RunInfo[]): Promise<Card[]> {
   const runs = new Map(known.map((r) => [r.n, r]));
   const cards: Card[] = [];
   for (const l of mine) {
-    const owner = (await read(RUNCARDS, runCardsAbi, "ownerOf", [l.tokenId]).catch(() => null))?.[0] as string | undefined;
-    if (!owner || getAddress(owner) !== getAddress(me)) continue;
+    const owner = (await read(RUNCARDS, runCardsAbi, "ownerOf", [l.tokenId]))[0] as string;
+    if (getAddress(owner) !== getAddress(me)) continue;
     const uri = (await read(RUNCARDS, runCardsAbi, "tokenURI", [l.tokenId]))[0] as string;
     let meta: { name?: string; image?: unknown; attributes?: Card["attributes"] } = {};
     try {

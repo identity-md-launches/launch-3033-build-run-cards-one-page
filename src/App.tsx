@@ -14,7 +14,7 @@ import { OPEN_IN, isMobileBrowser, short, type Wallet } from "./wallet";
 
 /* ---------- polling: only while the tab is visible, 5 minutes after an error ---------- */
 
-function usePoll(fn: () => Promise<void>, key: unknown) {
+function usePoll(fn: (isActive: () => boolean) => Promise<void>, key: unknown) {
   const ref = useRef(fn);
   ref.current = fn;
   useEffect(() => {
@@ -31,7 +31,7 @@ function usePoll(fn: () => Promise<void>, key: unknown) {
       if (document.hidden || busy || stopped) return;
       busy = true;
       let ms = POLL_MS;
-      try { await ref.current(); } catch { ms = BACKOFF_MS; }
+      try { await ref.current(() => !stopped); } catch { ms = BACKOFF_MS; }
       busy = false;
       schedule(ms);
     };
@@ -75,13 +75,13 @@ function ConnectControl({ w }: { w: WalletApi }) {
           <button className="x" aria-label="Close" onClick={close}>×</button>
         </div>
         <div className="sheet-rows">
-          {mobile && OPEN_IN.map((o) => (
+          {mobile && !w.wallets.length && OPEN_IN.map((o) => (
             <a key={o.id} className="row" href={o.href(location.href)}>
               <span className="ic" aria-hidden="true"><Hamster size={24} /></span>
               <span>Open in {o.name}</span>
             </a>
           ))}
-          {!mobile && w.wallets.map((x: Wallet) => (
+          {w.wallets.map((x: Wallet) => (
             <button key={x.info.uuid} className="row" disabled={!!w.pending} onClick={() => w.connect(x)}>
               <span className="ic" aria-hidden="true">{x.info.icon ? <img src={x.info.icon} width={28} height={28} alt="" /> : <Hamster size={24} />}</span>
               <span>{x.info.name}{w.pending === x.info.uuid ? " · opening…" : ""}</span>
@@ -120,17 +120,25 @@ function deliveredText(r: RunInfo): string {
 
 export function App() {
   const w = useWallet();
+  const walletKey = `${w.address ?? ""}:${w.chainId ?? ""}`;
+  const currentWallet = useRef(walletKey);
+  currentWallet.current = walletKey;
+  const refreshGeneration = useRef(0);
   const [live, setLive] = useState<LiveStatus>();
   const [liveErr, setLiveErr] = useState(false);
   const [chain, setChain] = useState<ChainState>();
   const [chainErr, setChainErr] = useState(false);
-  const [acct, setAcct] = useState<AccountState>();
-  const [cards, setCards] = useState<Card[]>();
-  const [cardsErr, setCardsErr] = useState(false);
+  const [accountResult, setAccountResult] = useState<{ key: string; value: AccountState }>();
+  const [cardsResult, setCardsResult] = useState<{ key: string; value: Card[] }>();
+  const [cardsErrorKey, setCardsErrorKey] = useState<string>();
+  // Hide the previous wallet's data in the very render that changes identity,
+  // before effects or a replacement request have had a chance to run.
+  const acct = accountResult?.key === walletKey ? accountResult.value : undefined;
+  const cards = cardsResult?.key === walletKey ? cardsResult.value : undefined;
+  const cardsErr = cardsErrorKey === walletKey;
   const [busy, setBusy] = useState<string>();
   const [msg, setMsg] = useState<{ kind: "ok" | "err" | "info"; text: string }>();
   const [tick, setTick] = useState(0);
-  const chainRef = useRef<ChainState>();
   const liveRef = useRef<LiveStatus>();
   liveRef.current = live;
 
@@ -153,32 +161,52 @@ export function App() {
     }
   }, "live");
 
-  const refreshChain = useCallback(async () => {
+  const refreshChain = useCallback(async (isActive: () => boolean) => {
+    const generation = ++refreshGeneration.current;
+    const isCurrent = () => isActive() && generation === refreshGeneration.current && currentWallet.current === walletKey;
+    let c: ChainState;
     try {
-      const c = await loadChain();
-      chainRef.current = c;
-      setChain(c);
-      setChainErr(false);
-      if (w.address) {
-        const [a, cs] = await Promise.all([
-          loadAccount(w.address, c, liveRef.current?.running ?? false),
-          loadCards(w.address, c.runs).then((x) => { setCardsErr(false); return x; }, () => { setCardsErr(true); return undefined; }),
-        ]);
-        setAcct(a);
-        if (cs) setCards(cs);
-      }
+      c = await loadChain();
     } catch (e) {
+      if (!isCurrent()) return;
       setChainErr(true);
+      setAccountResult(undefined);
       throw e;
     }
-  }, [w.address]);
+    if (!isCurrent()) return;
+    setChain(c);
+    setChainErr(false);
+    if (!w.address) return;
 
-  usePoll(refreshChain, `${w.address ?? ""}:${tick}`);
-  useEffect(() => { setAcct(undefined); setCards(undefined); }, [w.address]);
+    const [account, collection] = await Promise.allSettled([
+      loadAccount(w.address, c, liveRef.current?.running ?? false),
+      loadCards(w.address, c.runs),
+    ]);
+    if (!isCurrent()) return;
+    if (account.status === "fulfilled") {
+      setAccountResult({ key: walletKey, value: account.value });
+    } else {
+      setAccountResult(undefined);
+      setChainErr(true);
+    }
+    if (collection.status === "fulfilled") {
+      setCardsResult({ key: walletKey, value: collection.value });
+      setCardsErrorKey(undefined);
+    } else {
+      setCardsErrorKey(walletKey);
+    }
+    // Keep the specific card error visible, and let the poller apply its full
+    // five-minute backoff even when account reads succeeded.
+    if (account.status === "rejected") throw account.reason;
+    if (collection.status === "rejected") throw collection.reason;
+  }, [w.address, walletKey]);
+
+  usePoll(refreshChain, `${walletKey}:${tick}`);
+  useEffect(() => { setAccountResult(undefined); setCardsResult(undefined); setCardsErrorKey(undefined); }, [walletKey]);
 
   /* ----- transactions ----- */
 
-  const ready = !!w.address && w.onSepolia && !!w.wallet && !busy;
+  const ready = !!w.address && w.onSepolia && !!w.wallet && !busy && !chainErr;
 
   async function run(label: string, steps: () => Promise<string | void>) {
     if (!w.wallet || !w.address) return;
@@ -268,11 +296,14 @@ export function App() {
   const joinBlocked = acct && typeof acct.join === "object" ? acct.join.blocked : undefined;
   const joinEnabled = ready && !!acct && !joinBlocked;
   const meInOpen = !!(acct && chain && acct.joinedRuns.includes(chain.openRun));
-  const waiting = chain?.runs.filter((r) => !r.startedEarly && r.minted === 0 && r.joiners > 0 && r.n !== (joiningOpen ? chain.openRun : -1)) ?? [];
+  const waiting = chain?.actionRuns.filter((r) => r.minted === 0 && r.joiners > 0 && r.n !== (joiningOpen ? chain.openRun : -1)) ?? [];
+  const revealable = chain?.actionRuns.filter((r) => r.minted > 0 && !r.revealed &&
+    (chain.revealRounds[r.n] ?? 0n) > 0n && chain.revealRounds[r.n] <= chain.settledRound) ?? [];
 
   let joinHint = "";
   if (!w.address) joinHint = "Connect a wallet to join.";
   else if (!w.onSepolia) joinHint = "Switch your wallet to Sepolia to join.";
+  else if (chainErr) joinHint = "Wallet checks unavailable. Retrying in 5 minutes.";
   else if (!acct) joinHint = "Checking what this wallet can do…";
   else if (joinBlocked) joinHint = ERROR_TEXT[joinBlocked] ?? "Joining is not possible right now.";
   else if (acct.join === "approve") joinHint = "Join asks you to approve exactly 30,000 $CARDIO first.";
@@ -299,22 +330,24 @@ export function App() {
         <section className="card live" aria-labelledby="live-h">
           <h2 id="live-h" className="sr-only">Live wheel</h2>
           <div className="live-row">
-            <span className={`dot ${live?.running ? "on" : ""}`} aria-hidden="true" />
+            <span className={`dot ${live?.running && !liveErr && !live.stale ? "on" : ""}`} aria-hidden="true" />
             <p className="live-state">
-              {live ? (live.running ? "Running now" : "Resting") : liveErr ? "Wheel status unavailable" : "Checking the wheel…"}
+              {live ? `${liveErr || live.stale ? "Last known: " : ""}${live.running ? (liveErr || live.stale ? "running" : "Running now") : "Resting"}` : liveErr ? "Wheel status unavailable" : "Checking the wheel…"}
               {live && <span className="num"> · {live.kmh.toFixed(1)} km/h</span>}
             </p>
           </div>
           <p className="small muted">
-            {chain ? <>Settled round <span className="num">{fmtInt(chain.settledRound)}</span> · Squeekchain block <span className="num">{fmtInt(chain.blockHeight)}</span></> : chainErr ? "Settled round unavailable." : "Reading Sepolia…"}
+            {chain ? <>{chainErr ? "Last known: settled round " : "Settled round "}<span className="num">{fmtInt(chain.settledRound)}</span> · Squeekchain block <span className="num">{fmtInt(chain.blockHeight)}</span></> : chainErr ? "Settled round unavailable." : "Reading Sepolia…"}
             {live?.stale ? " · wheel reading is stale" : ""}
           </p>
+          <p className="small note" role="status" hidden={!liveErr}>{liveErr ? `${live ? "Wheel status unavailable. " : ""}Retrying in 5 minutes.` : ""}</p>
+          <p className="small note" role="status" hidden={!chainErr}>{chainErr ? `Sepolia unavailable.${chain ? " Showing the last reading." : ""} Retrying in 5 minutes.` : ""}</p>
         </section>
 
         {/* This run */}
         <section className="card run" aria-labelledby="run-h">
           <h2 id="run-h">{openInfo ? `Run ${openInfo.n}` : "This run"}</h2>
-          {!chain && <p className="muted">{chainErr ? "Sepolia is not answering. Retrying in 5 minutes." : "Reading the run from Sepolia…"}</p>}
+          {!chain && <p className="muted">{chainErr ? "Run status unavailable." : "Reading the run from Sepolia…"}</p>}
           {chain && !openInfo && (
             <p>
               {onlyEarly
@@ -328,7 +361,7 @@ export function App() {
               <Stat label="Rounds with work" value={fmtInt(openInfo.activeRounds)} />
               <Stat label="Work so far" value={fmtInt(openInfo.work)} />
               <Stat label="Runners" value={`${openInfo.joiners} of ${MAX_RUNNERS}`} />
-              <Stat label="Joining" value={joiningOpen ? "Open" : "Closed"} />
+              <Stat label="Joining" value={chainErr ? "Unknown" : joiningOpen ? "Open" : "Closed"} />
             </dl>
           )}
           <div className="actions">
@@ -382,7 +415,7 @@ export function App() {
         {/* Deliver and reveal */}
         <section className="card ended" aria-labelledby="ended-h">
           <h2 id="ended-h">Deliver and reveal</h2>
-          <p className="muted">Anyone can press these once a run ends.</p>
+          <p className="muted">Deliver an ended run. Reveal its cards after the next run settles.</p>
           {w.address && acct && (acct.deliver.length > 0 || acct.reveal.length > 0) ? (
             <div className="actions">
               {acct.deliver.map((d) => (
@@ -397,11 +430,16 @@ export function App() {
               ))}
             </div>
           ) : (
-            <p className="small">
-              {waiting.length
-                ? `Waiting for delivery: ${waiting.map((r) => `run ${r.n}`).join(", ")}. ${w.address ? "Deliver unlocks when the run has ended." : "Connect a wallet to deliver."}`
-                : "Nothing to deliver or reveal."}
-            </p>
+            <div className="small">
+              {!chain ? <p>{chainErr ? "Delivery and reveal status unavailable. Retrying in 5 minutes." : "Reading delivery and reveal status…"}</p>
+                : chainErr ? <p>Wallet checks unavailable. Retrying in 5 minutes.</p>
+                : w.address && !acct ? <p>Checking what this wallet can do…</p>
+                : <>
+                  {waiting.length > 0 && <p>Waiting for delivery: {waiting.map((r) => `run ${r.n}`).join(", ")}. {w.address ? "Deliver unlocks when the run has ended." : "Connect a wallet to deliver."}</p>}
+                  {revealable.map((r) => <p key={r.n}>{w.address ? `Reveal run ${r.n} is not available for this wallet right now.` : `Connect a wallet to reveal run ${r.n}.`}</p>)}
+                  {!waiting.length && !revealable.length && <p>Nothing to deliver or reveal.</p>}
+                </>}
+            </div>
           )}
         </section>
 
@@ -409,8 +447,9 @@ export function App() {
         <section className="card cards" aria-labelledby="cards-h">
           <h2 id="cards-h">My cards</h2>
           {!w.address && <p className="muted">Connect a wallet to see the cards it holds.</p>}
-          {w.address && !cards && <p className="muted">{cardsErr ? "Could not read your cards. Retrying soon." : "Looking for your cards…"}</p>}
-          {w.address && cards && cards.length === 0 && (
+          <p className="small note" role="status" hidden={!w.address || !cardsErr}>{w.address && cardsErr ? `Could not read your cards.${cards?.length ? " Showing the last reading." : ""} Retrying in 5 minutes.` : ""}</p>
+          {w.address && !cards && !cardsErr && <p className="muted">Looking for your cards…</p>}
+          {w.address && cards && !cardsErr && cards.length === 0 && (
             <p className="muted">No cards yet. Join a run while he is running: you get a card when the run is delivered.</p>
           )}
           {cards && cards.length > 0 && (

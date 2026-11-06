@@ -61,6 +61,6 @@ export const OPEN_IN: ReadonlyArray<{ id: string; name: string; href: (url: stri
 ];
 
 export const isMobileBrowser = () =>
-  /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && !(window as unknown as { ethereum?: unknown }).ethereum;
+  /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 export const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
