@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { RARITIES, SAMPLE_ROWS, sampleSvg, type SampleRow } from "./samples";
 
 /** One sample card, drawn by RunCardRenderer.svg() when it scrolls near the screen. */
-function SampleCard({ row, rarity, edition }: { row: SampleRow; rarity: string; edition: number }) {
+function SampleCard({ row, rarity, edition, odds }: { row: SampleRow; rarity: string; edition: number; odds: number }) {
   const ref = useRef<HTMLLIElement>(null);
   const [src, setSrc] = useState<string>();
   const [failed, setFailed] = useState(false);
@@ -26,6 +26,7 @@ function SampleCard({ row, rarity, edition }: { row: SampleRow; rarity: string; 
   const name = `${row.label}, ${rarity}, edition ${edition} of 100`;
   return (
     <li ref={ref} className="sample">
+      <p className={`small rarity r-${rarity.toLowerCase()}`}>{odds}%</p>
       <div className="art">
         {src ? <img src={src} alt={`Sample card: ${name}`} loading="lazy" decoding="async" />
           : failed ? <button className="btn btn-small" onClick={() => setAttempt((a) => a + 1)}>Draw again</button>
@@ -41,9 +42,9 @@ export function SampleRows() {
     <div className="sample-rows">
       {SAMPLE_ROWS.map((row, i) => (
         <div key={row.k} className="sample-row">
-          <h3 className="row-title"><strong>{row.label.split(", ")[0]}</strong> {row.label.split(", ")[1]} · {ODDS[i].odds.join(" / ")} %</h3>
+          <h3 className="row-title"><strong>{row.label.split(", ")[0]}</strong> {row.label.split(", ")[1]}</h3>
           <ul className="card-grid">
-            {RARITIES.map((r, i) => <SampleCard key={r} row={row} rarity={r} edition={row.editions[i]} />)}
+            {RARITIES.map((r, j) => <SampleCard key={r} row={row} rarity={r} edition={row.editions[j]} odds={ODDS[i].odds[j]} />)}
           </ul>
         </div>
       ))}
